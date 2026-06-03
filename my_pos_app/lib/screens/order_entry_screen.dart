@@ -139,7 +139,6 @@ class _OrderEntryScreenState extends State<OrderEntryScreen>
   Widget build(BuildContext context) {
     final provider = context.watch<POSProvider>();
     final check = provider.getCheckById(_activeCheckId);
-    final table = provider.getTableByNumber(widget.tableNumber);
     final pendingTotal = _pendingItems.fold<double>(0, (s, i) => s + i.total);
 
     return Scaffold(

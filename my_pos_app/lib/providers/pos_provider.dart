@@ -62,34 +62,156 @@ class POSProvider extends ChangeNotifier {
 
   static final List<MenuItem> fullMenu = [
     // Appetizers
-    const MenuItem(id: 'a1', name: 'Lobster Bisque', price: 18.00, category: MenuCategory.appetizers, description: 'Creamy lobster soup with cognac drizzle'),
-    const MenuItem(id: 'a2', name: 'Caesar Salad', price: 14.00, category: MenuCategory.appetizers, description: 'Crisp romaine, parmesan, house-made croutons'),
-    const MenuItem(id: 'a3', name: 'Tuna Tartare', price: 22.00, category: MenuCategory.appetizers, description: 'Yellowfin tuna, avocado, sesame-soy dressing'),
-    const MenuItem(id: 'a4', name: 'Bruschetta Trio', price: 12.00, category: MenuCategory.appetizers, description: 'Tomato basil, mushroom, olive tapenade'),
+    const MenuItem(
+      id: 'a1',
+      name: 'Lobster Bisque',
+      price: 18.00,
+      category: MenuCategory.appetizers,
+      description: 'Creamy lobster soup with cognac drizzle',
+    ),
+    const MenuItem(
+      id: 'a2',
+      name: 'Caesar Salad',
+      price: 14.00,
+      category: MenuCategory.appetizers,
+      description: 'Crisp romaine, parmesan, house-made croutons',
+    ),
+    const MenuItem(
+      id: 'a3',
+      name: 'Tuna Tartare',
+      price: 22.00,
+      category: MenuCategory.appetizers,
+      description: 'Yellowfin tuna, avocado, sesame-soy dressing',
+    ),
+    const MenuItem(
+      id: 'a4',
+      name: 'Bruschetta Trio',
+      price: 12.00,
+      category: MenuCategory.appetizers,
+      description: 'Tomato basil, mushroom, olive tapenade',
+    ),
     // Mains
-    const MenuItem(id: 'm1', name: 'Grilled Atlantic Salmon', price: 38.00, category: MenuCategory.mains, description: 'Herb-crusted, lemon beurre blanc'),
-    const MenuItem(id: 'm2', name: 'Wagyu Beef Burger', price: 32.00, category: MenuCategory.mains, description: 'A5 wagyu patty, truffle aioli, brioche'),
-    const MenuItem(id: 'm3', name: 'Truffle Mushroom Risotto', price: 28.00, category: MenuCategory.mains, description: 'Arborio rice, wild mushrooms, shaved truffle'),
-    const MenuItem(id: 'm4', name: 'Chicken Parmigiana', price: 26.00, category: MenuCategory.mains, description: 'Crumbed chicken, napoli, mozzarella'),
-    const MenuItem(id: 'm5', name: 'Margherita Pizza', price: 20.00, category: MenuCategory.mains, description: 'San Marzano, fresh mozzarella, basil'),
-    const MenuItem(id: 'm6', name: 'Vegetable Pad Thai', price: 22.00, category: MenuCategory.mains, description: 'Rice noodles, tofu, tamarind sauce'),
+    const MenuItem(
+      id: 'm1',
+      name: 'Grilled Atlantic Salmon',
+      price: 38.00,
+      category: MenuCategory.mains,
+      description: 'Herb-crusted, lemon beurre blanc',
+    ),
+    const MenuItem(
+      id: 'm2',
+      name: 'Wagyu Beef Burger',
+      price: 32.00,
+      category: MenuCategory.mains,
+      description: 'A5 wagyu patty, truffle aioli, brioche',
+    ),
+    const MenuItem(
+      id: 'm3',
+      name: 'Truffle Mushroom Risotto',
+      price: 28.00,
+      category: MenuCategory.mains,
+      description: 'Arborio rice, wild mushrooms, shaved truffle',
+    ),
+    const MenuItem(
+      id: 'm4',
+      name: 'Chicken Parmigiana',
+      price: 26.00,
+      category: MenuCategory.mains,
+      description: 'Crumbed chicken, napoli, mozzarella',
+    ),
+    const MenuItem(
+      id: 'm5',
+      name: 'Margherita Pizza',
+      price: 20.00,
+      category: MenuCategory.mains,
+      description: 'San Marzano, fresh mozzarella, basil',
+    ),
+    const MenuItem(
+      id: 'm6',
+      name: 'Vegetable Pad Thai',
+      price: 22.00,
+      category: MenuCategory.mains,
+      description: 'Rice noodles, tofu, tamarind sauce',
+    ),
     // Desserts
-    const MenuItem(id: 'd1', name: 'Chocolate Lava Cake', price: 16.00, category: MenuCategory.desserts, description: 'Warm molten center, vanilla gelato'),
-    const MenuItem(id: 'd2', name: 'Crème Brûlée', price: 14.00, category: MenuCategory.desserts, description: 'Classic vanilla, caramelized sugar'),
-    const MenuItem(id: 'd3', name: 'Tiramisu', price: 15.00, category: MenuCategory.desserts, description: 'Espresso-soaked ladyfingers, mascarpone'),
+    const MenuItem(
+      id: 'd1',
+      name: 'Chocolate Lava Cake',
+      price: 16.00,
+      category: MenuCategory.desserts,
+      description: 'Warm molten center, vanilla gelato',
+    ),
+    const MenuItem(
+      id: 'd2',
+      name: 'Crème Brûlée',
+      price: 14.00,
+      category: MenuCategory.desserts,
+      description: 'Classic vanilla, caramelized sugar',
+    ),
+    const MenuItem(
+      id: 'd3',
+      name: 'Tiramisu',
+      price: 15.00,
+      category: MenuCategory.desserts,
+      description: 'Espresso-soaked ladyfingers, mascarpone',
+    ),
     // Beverages
-    const MenuItem(id: 'b1', name: 'Espresso Martini', price: 18.00, category: MenuCategory.beverages, description: 'Vodka, Kahlúa, fresh espresso'),
-    const MenuItem(id: 'b2', name: 'House Red Wine (Glass)', price: 14.00, category: MenuCategory.beverages, description: 'Cabernet Sauvignon, Napa Valley'),
-    const MenuItem(id: 'b3', name: 'Sparkling Water', price: 6.00, category: MenuCategory.beverages, description: 'San Pellegrino 750ml'),
-    const MenuItem(id: 'b4', name: 'Craft Lager', price: 10.00, category: MenuCategory.beverages, description: 'Local microbrewery, 330ml'),
+    const MenuItem(
+      id: 'b1',
+      name: 'Espresso Martini',
+      price: 18.00,
+      category: MenuCategory.beverages,
+      description: 'Vodka, Kahlúa, fresh espresso',
+    ),
+    const MenuItem(
+      id: 'b2',
+      name: 'House Red Wine (Glass)',
+      price: 14.00,
+      category: MenuCategory.beverages,
+      description: 'Cabernet Sauvignon, Napa Valley',
+    ),
+    const MenuItem(
+      id: 'b3',
+      name: 'Sparkling Water',
+      price: 6.00,
+      category: MenuCategory.beverages,
+      description: 'San Pellegrino 750ml',
+    ),
+    const MenuItem(
+      id: 'b4',
+      name: 'Craft Lager',
+      price: 10.00,
+      category: MenuCategory.beverages,
+      description: 'Local microbrewery, 330ml',
+    ),
     // Sides
-    const MenuItem(id: 's1', name: 'Truffle Fries', price: 12.00, category: MenuCategory.sides, description: 'Hand-cut, parmesan, truffle oil'),
-    const MenuItem(id: 's2', name: 'Grilled Asparagus', price: 10.00, category: MenuCategory.sides, description: 'Hollandaise, toasted almonds'),
-    const MenuItem(id: 's3', name: 'Garlic Bread', price: 8.00, category: MenuCategory.sides, description: 'Herb butter, mozzarella'),
+    const MenuItem(
+      id: 's1',
+      name: 'Truffle Fries',
+      price: 12.00,
+      category: MenuCategory.sides,
+      description: 'Hand-cut, parmesan, truffle oil',
+    ),
+    const MenuItem(
+      id: 's2',
+      name: 'Grilled Asparagus',
+      price: 10.00,
+      category: MenuCategory.sides,
+      description: 'Hollandaise, toasted almonds',
+    ),
+    const MenuItem(
+      id: 's3',
+      name: 'Garlic Bread',
+      price: 8.00,
+      category: MenuCategory.sides,
+      description: 'Herb butter, mozzarella',
+    ),
   ];
 
   List<MenuItem> getMenuByCategory(MenuCategory category) {
-    return fullMenu.where((item) => item.category == category && item.isAvailable).toList();
+    return fullMenu
+        .where((item) => item.category == category && item.isAvailable)
+        .toList();
   }
 
   // ── Tables ──────────────────────────────────────────────────────
@@ -98,25 +220,80 @@ class POSProvider extends ChangeNotifier {
     RestaurantTable(number: 1, status: TableStatus.available),
     RestaurantTable(number: 2, status: TableStatus.available),
     RestaurantTable(number: 3, status: TableStatus.available),
-    RestaurantTable(number: 4, status: TableStatus.billing, covers: 2, duration: '42m', billAmount: 84.50, orders: [
-      OrderItem(name: 'Wagyu Beef Burger', quantity: 2, courseNumber: 2, price: 32.00, status: OrderItemStatus.served),
-      OrderItem(name: 'Espresso Martini', quantity: 2, courseNumber: 3, price: 18.00, status: OrderItemStatus.served),
-    ]),
-    RestaurantTable(number: 5, status: TableStatus.occupied, covers: 8, duration: '15m', billAmount: 45.00, orders: [
-      OrderItem(name: 'Margherita Pizza', quantity: 2, courseNumber: 1, price: 20.00, status: OrderItemStatus.preparing),
-    ]),
+    RestaurantTable(
+      number: 4,
+      status: TableStatus.billing,
+      covers: 2,
+      duration: '42m',
+      billAmount: 84.50,
+      orders: [
+        OrderItem(
+          name: 'Wagyu Beef Burger',
+          quantity: 2,
+          courseNumber: 2,
+          price: 32.00,
+          status: OrderItemStatus.served,
+        ),
+        OrderItem(
+          name: 'Espresso Martini',
+          quantity: 2,
+          courseNumber: 3,
+          price: 18.00,
+          status: OrderItemStatus.served,
+        ),
+      ],
+    ),
+    RestaurantTable(
+      number: 5,
+      status: TableStatus.occupied,
+      covers: 8,
+      duration: '15m',
+      billAmount: 45.00,
+      orders: [
+        OrderItem(
+          name: 'Margherita Pizza',
+          quantity: 2,
+          courseNumber: 1,
+          price: 20.00,
+          status: OrderItemStatus.preparing,
+        ),
+      ],
+    ),
     RestaurantTable(number: 6, status: TableStatus.available),
-    RestaurantTable(number: 7, status: TableStatus.billing, covers: 4, duration: '1h 12m', billAmount: 126.00, orders: [
-      OrderItem(name: 'Grilled Atlantic Salmon', quantity: 3, courseNumber: 2, price: 38.00, status: OrderItemStatus.served),
-    ]),
+    RestaurantTable(
+      number: 7,
+      status: TableStatus.billing,
+      covers: 4,
+      duration: '1h 12m',
+      billAmount: 126.00,
+      orders: [
+        OrderItem(
+          name: 'Grilled Atlantic Salmon',
+          quantity: 3,
+          courseNumber: 2,
+          price: 38.00,
+          status: OrderItemStatus.served,
+        ),
+      ],
+    ),
     RestaurantTable(number: 8, status: TableStatus.available),
     RestaurantTable(number: 9, status: TableStatus.available),
     RestaurantTable(number: 10, status: TableStatus.available),
     RestaurantTable(number: 11, status: TableStatus.available),
-    RestaurantTable(number: 12, status: TableStatus.reserved, covers: 6, reservationTime: 'At 19:30'),
+    RestaurantTable(
+      number: 12,
+      status: TableStatus.reserved,
+      covers: 6,
+      reservationTime: 'At 19:30',
+    ),
     RestaurantTable(number: 13, status: TableStatus.available),
     RestaurantTable(number: 14, status: TableStatus.available),
-    RestaurantTable(number: 15, status: TableStatus.reserved, covers: 2, reservationTime: 'At 20:00'),
+    RestaurantTable(
+      number: 15,
+      status: TableStatus.reserved,
+      covers: 2,
+      reservationTime: 'At 20:00',
+    ),
     RestaurantTable(number: 16, status: TableStatus.available),
   ];
 
@@ -128,9 +305,12 @@ class POSProvider extends ChangeNotifier {
 
   List<Check> get checks => List.unmodifiable(_checks);
 
-  List<Check> get openChecks => _checks.where((c) => c.status == CheckStatus.open).toList();
-  List<Check> get savedChecks => _checks.where((c) => c.status == CheckStatus.saved).toList();
-  List<Check> get closedChecks => _checks.where((c) => c.status == CheckStatus.closed).toList();
+  List<Check> get openChecks =>
+      _checks.where((c) => c.status == CheckStatus.open).toList();
+  List<Check> get savedChecks =>
+      _checks.where((c) => c.status == CheckStatus.saved).toList();
+  List<Check> get closedChecks =>
+      _checks.where((c) => c.status == CheckStatus.closed).toList();
 
   Check? getCheckById(String id) {
     try {
@@ -232,7 +412,11 @@ class POSProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void closeCheck(String checkId, {String paymentMethod = 'Card', double tip = 0.0}) {
+  void closeCheck(
+    String checkId, {
+    String paymentMethod = 'Card',
+    double tip = 0.0,
+  }) {
     final check = getCheckById(checkId);
     if (check == null) return;
 
@@ -254,12 +438,13 @@ class POSProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void voidCheck(String checkId) {
+  void voidCheck(String checkId, {String reason = ''}) {
     final check = getCheckById(checkId);
     if (check == null) return;
 
     check.status = CheckStatus.voided;
     check.closedAt = DateTime.now();
+    check.voidReason = reason;
 
     final tableIdx = _tables.indexWhere((t) => t.number == check.tableNumber);
     if (tableIdx != -1) {
@@ -276,29 +461,126 @@ class POSProvider extends ChangeNotifier {
   // ── Staff Management (RBAC) ─────────────────────────────────────
 
   final List<StaffMember> _staff = [
-    StaffMember(id: 's1', name: 'Sarah Johnson', role: UserRole.admin, pin: '1234', permissions: ['all']),
-    StaffMember(id: 's2', name: 'Mike Chen', role: UserRole.manager, pin: '5678', permissions: ['void_check', 'apply_discount', 'view_reports', 'manage_menu']),
-    StaffMember(id: 's3', name: 'Emily Davis', role: UserRole.server, pin: '9012', permissions: ['create_check', 'add_items', 'save_check']),
-    StaffMember(id: 's4', name: 'James Wilson', role: UserRole.server, pin: '3456', permissions: ['create_check', 'add_items', 'save_check']),
-    StaffMember(id: 's5', name: 'Alex Rodriguez', role: UserRole.kitchen, pin: '7890', permissions: ['view_orders', 'update_status']),
-    StaffMember(id: 's6', name: 'Lisa Park', role: UserRole.server, pin: '2468', isActive: false, permissions: ['create_check', 'add_items']),
+    StaffMember(
+      id: 's1',
+      name: 'Sarah Johnson',
+      role: UserRole.admin,
+      pin: '1234',
+      permissions: ['all'],
+    ),
+    StaffMember(
+      id: 's2',
+      name: 'Mike Chen',
+      role: UserRole.manager,
+      pin: '5678',
+      permissions: [
+        'void_check',
+        'apply_discount',
+        'view_reports',
+        'manage_menu',
+      ],
+    ),
+    StaffMember(
+      id: 's3',
+      name: 'Emily Davis',
+      role: UserRole.server,
+      pin: '9012',
+      permissions: ['create_check', 'add_items', 'save_check'],
+    ),
+    StaffMember(
+      id: 's4',
+      name: 'James Wilson',
+      role: UserRole.server,
+      pin: '3456',
+      permissions: ['create_check', 'add_items', 'save_check'],
+    ),
+    StaffMember(
+      id: 's5',
+      name: 'Alex Rodriguez',
+      role: UserRole.kitchen,
+      pin: '7890',
+      permissions: ['view_orders', 'update_status'],
+    ),
+    StaffMember(
+      id: 's6',
+      name: 'Lisa Park',
+      role: UserRole.server,
+      pin: '2468',
+      isActive: false,
+      permissions: ['create_check', 'add_items'],
+    ),
   ];
 
   List<StaffMember> get staff => List.unmodifiable(_staff);
   List<StaffMember> get activeStaff => _staff.where((s) => s.isActive).toList();
 
   static const List<Permission> allPermissions = [
-    Permission(id: 'create_check', name: 'Create Check', description: 'Open new checks on tables', category: 'Orders'),
-    Permission(id: 'add_items', name: 'Add Items', description: 'Add items to open checks', category: 'Orders'),
-    Permission(id: 'save_check', name: 'Save Check', description: 'Save checks for later recall', category: 'Orders'),
-    Permission(id: 'void_check', name: 'Void Check', description: 'Void entire checks', category: 'Admin'),
-    Permission(id: 'void_item', name: 'Void Item', description: 'Remove individual items from checks', category: 'Admin'),
-    Permission(id: 'apply_discount', name: 'Apply Discount', description: 'Apply discounts to checks', category: 'Admin'),
-    Permission(id: 'view_reports', name: 'View Reports', description: 'Access sales and analytics reports', category: 'Reports'),
-    Permission(id: 'manage_menu', name: 'Manage Menu', description: 'Edit menu items and pricing', category: 'Menu'),
-    Permission(id: 'manage_staff', name: 'Manage Staff', description: 'Add/edit/deactivate staff members', category: 'Admin'),
-    Permission(id: 'view_orders', name: 'View Orders', description: 'View incoming kitchen orders', category: 'Kitchen'),
-    Permission(id: 'update_status', name: 'Update Status', description: 'Update order preparation status', category: 'Kitchen'),
+    Permission(
+      id: 'create_check',
+      name: 'Create Check',
+      description: 'Open new checks on tables',
+      category: 'Orders',
+    ),
+    Permission(
+      id: 'add_items',
+      name: 'Add Items',
+      description: 'Add items to open checks',
+      category: 'Orders',
+    ),
+    Permission(
+      id: 'save_check',
+      name: 'Save Check',
+      description: 'Save checks for later recall',
+      category: 'Orders',
+    ),
+    Permission(
+      id: 'void_check',
+      name: 'Void Check',
+      description: 'Void entire checks',
+      category: 'Admin',
+    ),
+    Permission(
+      id: 'void_item',
+      name: 'Void Item',
+      description: 'Remove individual items from checks',
+      category: 'Admin',
+    ),
+    Permission(
+      id: 'apply_discount',
+      name: 'Apply Discount',
+      description: 'Apply discounts to checks',
+      category: 'Admin',
+    ),
+    Permission(
+      id: 'view_reports',
+      name: 'View Reports',
+      description: 'Access sales and analytics reports',
+      category: 'Reports',
+    ),
+    Permission(
+      id: 'manage_menu',
+      name: 'Manage Menu',
+      description: 'Edit menu items and pricing',
+      category: 'Menu',
+    ),
+    Permission(
+      id: 'manage_staff',
+      name: 'Manage Staff',
+      description: 'Add/edit/deactivate staff members',
+      category: 'Admin',
+    ),
+    Permission(
+      id: 'view_orders',
+      name: 'View Orders',
+      description: 'View incoming kitchen orders',
+      category: 'Kitchen',
+    ),
+    Permission(
+      id: 'update_status',
+      name: 'Update Status',
+      description: 'Update order preparation status',
+      category: 'Kitchen',
+    ),
   ];
 
   void addStaffMember(StaffMember member) {
@@ -306,7 +588,14 @@ class POSProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateStaffMember(String id, {String? name, UserRole? role, String? pin, bool? isActive, List<String>? permissions}) {
+  void updateStaffMember(
+    String id, {
+    String? name,
+    UserRole? role,
+    String? pin,
+    bool? isActive,
+    List<String>? permissions,
+  }) {
     final index = _staff.indexWhere((s) => s.id == id);
     if (index == -1) return;
 
@@ -329,10 +618,12 @@ class POSProvider extends ChangeNotifier {
     if (_currentUser == null) return false;
     if (_currentUser!.role == UserRole.admin) return true;
 
-    final staffMember = _staff.where((s) => s.name == _currentUser!.name).toList();
+    final staffMember = _staff
+        .where((s) => s.name == _currentUser!.name)
+        .toList();
     if (staffMember.isEmpty) return false;
     return staffMember.first.permissions.contains(permissionId) ||
-           staffMember.first.permissions.contains('all');
+        staffMember.first.permissions.contains('all');
   }
 
   // ── Auth ─────────────────────────────────────────────────────────
@@ -410,8 +701,20 @@ class POSProvider extends ChangeNotifier {
       status: CheckStatus.open,
       covers: 2,
       items: [
-        OrderItem(name: 'Wagyu Beef Burger', quantity: 2, courseNumber: 2, price: 32.00, status: OrderItemStatus.served),
-        OrderItem(name: 'Espresso Martini', quantity: 2, courseNumber: 3, price: 18.00, status: OrderItemStatus.served),
+        OrderItem(
+          name: 'Wagyu Beef Burger',
+          quantity: 2,
+          courseNumber: 2,
+          price: 32.00,
+          status: OrderItemStatus.served,
+        ),
+        OrderItem(
+          name: 'Espresso Martini',
+          quantity: 2,
+          courseNumber: 3,
+          price: 18.00,
+          status: OrderItemStatus.served,
+        ),
       ],
       subtotal: 100.00,
       tax: 8.50,
@@ -427,7 +730,13 @@ class POSProvider extends ChangeNotifier {
       status: CheckStatus.open,
       covers: 8,
       items: [
-        OrderItem(name: 'Margherita Pizza', quantity: 2, courseNumber: 1, price: 20.00, status: OrderItemStatus.preparing),
+        OrderItem(
+          name: 'Margherita Pizza',
+          quantity: 2,
+          courseNumber: 1,
+          price: 20.00,
+          status: OrderItemStatus.preparing,
+        ),
       ],
       subtotal: 40.00,
       tax: 3.40,
@@ -443,7 +752,13 @@ class POSProvider extends ChangeNotifier {
       status: CheckStatus.open,
       covers: 4,
       items: [
-        OrderItem(name: 'Grilled Atlantic Salmon', quantity: 3, courseNumber: 2, price: 38.00, status: OrderItemStatus.served),
+        OrderItem(
+          name: 'Grilled Atlantic Salmon',
+          quantity: 3,
+          courseNumber: 2,
+          price: 38.00,
+          status: OrderItemStatus.served,
+        ),
       ],
       subtotal: 114.00,
       tax: 9.69,
@@ -460,8 +775,20 @@ class POSProvider extends ChangeNotifier {
       status: CheckStatus.saved,
       covers: 2,
       items: [
-        OrderItem(name: 'Caesar Salad', quantity: 2, courseNumber: 1, price: 14.00, status: OrderItemStatus.served),
-        OrderItem(name: 'Truffle Mushroom Risotto', quantity: 1, courseNumber: 2, price: 28.00, status: OrderItemStatus.served),
+        OrderItem(
+          name: 'Caesar Salad',
+          quantity: 2,
+          courseNumber: 1,
+          price: 14.00,
+          status: OrderItemStatus.served,
+        ),
+        OrderItem(
+          name: 'Truffle Mushroom Risotto',
+          quantity: 1,
+          courseNumber: 2,
+          price: 28.00,
+          status: OrderItemStatus.served,
+        ),
       ],
       subtotal: 56.00,
       tax: 4.76,
@@ -478,9 +805,27 @@ class POSProvider extends ChangeNotifier {
       status: CheckStatus.closed,
       covers: 4,
       items: [
-        OrderItem(name: 'Lobster Bisque', quantity: 2, courseNumber: 1, price: 18.00, status: OrderItemStatus.served),
-        OrderItem(name: 'Wagyu Beef Burger', quantity: 2, courseNumber: 2, price: 32.00, status: OrderItemStatus.served),
-        OrderItem(name: 'Chocolate Lava Cake', quantity: 2, courseNumber: 3, price: 16.00, status: OrderItemStatus.served),
+        OrderItem(
+          name: 'Lobster Bisque',
+          quantity: 2,
+          courseNumber: 1,
+          price: 18.00,
+          status: OrderItemStatus.served,
+        ),
+        OrderItem(
+          name: 'Wagyu Beef Burger',
+          quantity: 2,
+          courseNumber: 2,
+          price: 32.00,
+          status: OrderItemStatus.served,
+        ),
+        OrderItem(
+          name: 'Chocolate Lava Cake',
+          quantity: 2,
+          courseNumber: 3,
+          price: 16.00,
+          status: OrderItemStatus.served,
+        ),
       ],
       subtotal: 132.00,
       tax: 11.22,
@@ -498,9 +843,27 @@ class POSProvider extends ChangeNotifier {
       status: CheckStatus.closed,
       covers: 6,
       items: [
-        OrderItem(name: 'Tuna Tartare', quantity: 3, courseNumber: 1, price: 22.00, status: OrderItemStatus.served),
-        OrderItem(name: 'Grilled Atlantic Salmon', quantity: 4, courseNumber: 2, price: 38.00, status: OrderItemStatus.served),
-        OrderItem(name: 'House Red Wine (Glass)', quantity: 6, courseNumber: 2, price: 14.00, status: OrderItemStatus.served),
+        OrderItem(
+          name: 'Tuna Tartare',
+          quantity: 3,
+          courseNumber: 1,
+          price: 22.00,
+          status: OrderItemStatus.served,
+        ),
+        OrderItem(
+          name: 'Grilled Atlantic Salmon',
+          quantity: 4,
+          courseNumber: 2,
+          price: 38.00,
+          status: OrderItemStatus.served,
+        ),
+        OrderItem(
+          name: 'House Red Wine (Glass)',
+          quantity: 6,
+          courseNumber: 2,
+          price: 14.00,
+          status: OrderItemStatus.served,
+        ),
       ],
       subtotal: 302.00,
       tax: 25.67,
@@ -519,25 +882,76 @@ class POSProvider extends ChangeNotifier {
     _tables[0] = RestaurantTable(number: 1, status: TableStatus.available);
     _tables[1] = RestaurantTable(number: 2, status: TableStatus.available);
     _tables[2] = RestaurantTable(number: 3, status: TableStatus.available);
-    _tables[3] = RestaurantTable(number: 4, status: TableStatus.billing, covers: 2, duration: '42m', billAmount: 84.50, orders: [
-      OrderItem(name: 'Wagyu Beef Burger', quantity: 2, courseNumber: 2, price: 32.00),
-      OrderItem(name: 'Espresso Martini', quantity: 2, courseNumber: 3, price: 18.00),
-    ]);
-    _tables[4] = RestaurantTable(number: 5, status: TableStatus.occupied, covers: 8, duration: '15m', billAmount: 45.00, orders: [
-      OrderItem(name: 'Margherita Pizza', quantity: 2, courseNumber: 1, price: 20.00),
-    ]);
+    _tables[3] = RestaurantTable(
+      number: 4,
+      status: TableStatus.billing,
+      covers: 2,
+      duration: '42m',
+      billAmount: 84.50,
+      orders: [
+        OrderItem(
+          name: 'Wagyu Beef Burger',
+          quantity: 2,
+          courseNumber: 2,
+          price: 32.00,
+        ),
+        OrderItem(
+          name: 'Espresso Martini',
+          quantity: 2,
+          courseNumber: 3,
+          price: 18.00,
+        ),
+      ],
+    );
+    _tables[4] = RestaurantTable(
+      number: 5,
+      status: TableStatus.occupied,
+      covers: 8,
+      duration: '15m',
+      billAmount: 45.00,
+      orders: [
+        OrderItem(
+          name: 'Margherita Pizza',
+          quantity: 2,
+          courseNumber: 1,
+          price: 20.00,
+        ),
+      ],
+    );
     _tables[5] = RestaurantTable(number: 6, status: TableStatus.available);
-    _tables[6] = RestaurantTable(number: 7, status: TableStatus.billing, covers: 4, duration: '1h 12m', billAmount: 126.00, orders: [
-      OrderItem(name: 'Grilled Atlantic Salmon', quantity: 3, courseNumber: 2, price: 38.00),
-    ]);
+    _tables[6] = RestaurantTable(
+      number: 7,
+      status: TableStatus.billing,
+      covers: 4,
+      duration: '1h 12m',
+      billAmount: 126.00,
+      orders: [
+        OrderItem(
+          name: 'Grilled Atlantic Salmon',
+          quantity: 3,
+          courseNumber: 2,
+          price: 38.00,
+        ),
+      ],
+    );
     _tables[7] = RestaurantTable(number: 8, status: TableStatus.available);
     _tables[8] = RestaurantTable(number: 9, status: TableStatus.available);
     _tables[9] = RestaurantTable(number: 10, status: TableStatus.available);
     _tables[10] = RestaurantTable(number: 11, status: TableStatus.available);
-    _tables[11] = RestaurantTable(number: 12, status: TableStatus.reserved, covers: 6, reservationTime: 'At 19:30');
+    _tables[11] = RestaurantTable(
+      number: 12,
+      status: TableStatus.reserved,
+      covers: 6,
+      reservationTime: 'At 19:30',
+    );
     _tables[12] = RestaurantTable(number: 13, status: TableStatus.available);
     _tables[13] = RestaurantTable(number: 14, status: TableStatus.available);
-    _tables[14] = RestaurantTable(number: 15, status: TableStatus.reserved, covers: 2, reservationTime: 'At 20:00');
+    _tables[14] = RestaurantTable(
+      number: 15,
+      status: TableStatus.reserved,
+      covers: 2,
+      reservationTime: 'At 20:00',
+    );
     _tables[15] = RestaurantTable(number: 16, status: TableStatus.available);
     notifyListeners();
   }

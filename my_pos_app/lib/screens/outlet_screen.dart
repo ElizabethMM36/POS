@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
-import 'package:my_pos_app/screens/table_grid_screen.dart';
+import 'package:my_pos_app/screens/main_shell_screen.dart';
 
 class OutletScreen extends StatelessWidget {
   const OutletScreen({super.key});
@@ -113,7 +113,7 @@ class OutletScreen extends StatelessWidget {
                     provider.selectOutlet(provider.mockOutlets[0]);
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => const TableGridScreen(),
+                        builder: (_) => const MainShellScreen(),
                       ),
                     );
                   },
@@ -132,7 +132,7 @@ class OutletScreen extends StatelessWidget {
                     provider.selectOutlet(provider.mockOutlets[1]);
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => const TableGridScreen(),
+                        builder: (_) => const MainShellScreen(),
                       ),
                     );
                   },
@@ -170,7 +170,7 @@ class OutletScreen extends StatelessWidget {
                     provider.selectOutlet(provider.mockOutlets[2]);
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => const TableGridScreen(),
+                        builder: (_) => const MainShellScreen(),
                       ),
                     );
                   },

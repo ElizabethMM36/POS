@@ -9,10 +9,7 @@ import 'package:my_pos_app/screens/order_entry_screen.dart';
 /// Post-fire confirmation screen showing the full check with item statuses,
 /// totals breakdown, and action buttons for save/close/add-more workflows.
 class OrderSummaryScreen extends StatefulWidget {
-  const OrderSummaryScreen({
-    super.key,
-    required this.checkId,
-  });
+  const OrderSummaryScreen({super.key, required this.checkId});
 
   final String checkId;
 
@@ -33,15 +30,14 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _fadeIn = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
-    );
-    _slideUp = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
-    );
+    _fadeIn = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
+    _slideUp = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
+        );
     _entryController.forward();
   }
 
@@ -81,6 +77,151 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
     }
   }
 
+  void _showVoidDialog(BuildContext context) {
+    final reasonController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1D1F27),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Void Check',
+            style: TextStyle(
+              fontFamily: 'Hanken Grotesk',
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFFE1E2ED),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Please provide a reason for voiding this check:',
+                style: TextStyle(
+                  fontFamily: 'Hanken Grotesk',
+                  fontSize: 14,
+                  color: Color(0xFFC3C6D7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Quick reason buttons
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    [
+                      'Wrong Order',
+                      'Guest Cancellation',
+                      'Duplicate',
+                      'System Error',
+                    ].map((reason) {
+                      return OutlinedButton(
+                        onPressed: () => reasonController.text = reason,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF434655)),
+                          foregroundColor: const Color(0xFFC3C6D7),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          reason,
+                          style: const TextStyle(
+                            fontFamily: 'Hanken Grotesk',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                style: const TextStyle(
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: 13,
+                  color: Color(0xFFE1E2ED),
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Enter custom reason...',
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF434655),
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF434655)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF434655)),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF191B23),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'Hanken Grotesk',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFC3C6D7),
+                ),
+              ),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (reasonController.text.isNotEmpty) {
+                  context.read<POSProvider>().voidCheck(
+                    widget.checkId,
+                    reason: reasonController.text,
+                  );
+                  Navigator.of(ctx).pop(); // close dialog
+                  Navigator.of(context).pop(); // back to floor
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Check ${widget.checkId} voided: ${reasonController.text}',
+                      ),
+                      backgroundColor: const Color(0xFFEF4444),
+                    ),
+                  );
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(
+                'Void Check',
+                style: TextStyle(
+                  fontFamily: 'Hanken Grotesk',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showPaymentDialog(BuildContext context, Check check) {
     String selectedMethod = 'Card';
     final tipController = TextEditingController(text: '0');
@@ -97,7 +238,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
           builder: (ctx, setSheetState) {
             return Padding(
               padding: EdgeInsets.fromLTRB(
-                24, 24, 24,
+                24,
+                24,
+                24,
                 MediaQuery.of(ctx).viewInsets.bottom + 24,
               ),
               child: Column(
@@ -131,13 +274,18 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       final isSelected = selectedMethod == method;
                       return Expanded(
                         child: GestureDetector(
-                          onTap: () => setSheetState(() => selectedMethod = method),
+                          onTap: () =>
+                              setSheetState(() => selectedMethod = method),
                           child: Container(
-                            margin: EdgeInsets.only(right: method != 'Split' ? 8 : 0),
+                            margin: EdgeInsets.only(
+                              right: method != 'Split' ? 8 : 0,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(0xFF2563EB).withValues(alpha: 0.2)
+                                  ? const Color(
+                                      0xFF2563EB,
+                                    ).withValues(alpha: 0.2)
                                   : const Color(0xFF191B23),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
@@ -153,8 +301,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                   method == 'Card'
                                       ? Icons.credit_card_rounded
                                       : method == 'Cash'
-                                          ? Icons.payments_rounded
-                                          : Icons.call_split_rounded,
+                                      ? Icons.payments_rounded
+                                      : Icons.call_split_rounded,
                                   color: isSelected
                                       ? const Color(0xFFB4C5FF)
                                       : const Color(0xFFC3C6D7),
@@ -197,7 +345,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       // Quick tip buttons
                       ...['15%', '18%', '20%'].map((pct) {
                         final percent = int.parse(pct.replaceAll('%', ''));
-                        final tipAmt = (check.subtotal * percent / 100).toStringAsFixed(2);
+                        final tipAmt = (check.subtotal * percent / 100)
+                            .toStringAsFixed(2);
                         return Expanded(
                           child: GestureDetector(
                             onTap: () {
@@ -211,7 +360,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                               decoration: BoxDecoration(
                                 color: const Color(0xFF191B23),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFF434655)),
+                                border: Border.all(
+                                  color: const Color(0xFF434655),
+                                ),
                               ),
                               child: Column(
                                 children: [
@@ -245,7 +396,11 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           child: TextField(
                             controller: tipController,
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[\d.]'),
+                              ),
+                            ],
                             style: const TextStyle(
                               fontFamily: 'JetBrains Mono',
                               fontSize: 14,
@@ -258,14 +413,20 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                 fontSize: 14,
                                 color: Color(0xFFC3C6D7),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFF434655)),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF434655),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFF434655)),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF434655),
+                                ),
                               ),
                               filled: true,
                               fillColor: const Color(0xFF191B23),
@@ -320,7 +481,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       Navigator.of(context).pop(); // back to floor
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Check ${widget.checkId} closed via $selectedMethod'),
+                          content: Text(
+                            'Check ${widget.checkId} closed via $selectedMethod',
+                          ),
                           backgroundColor: const Color(0xFF22C55E),
                         ),
                       );
@@ -361,7 +524,10 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
       return const Scaffold(
         backgroundColor: Color(0xFF11131B),
         body: Center(
-          child: Text('Check not found', style: TextStyle(color: Color(0xFFE1E2ED))),
+          child: Text(
+            'Check not found',
+            style: TextStyle(color: Color(0xFFE1E2ED)),
+          ),
         ),
       );
     }
@@ -419,7 +585,11 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF22C55E)),
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 14,
+                  color: Color(0xFF22C55E),
+                ),
                 SizedBox(width: 4),
                 Text(
                   'FIRED',
@@ -523,7 +693,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                                color: const Color(
+                                  0xFF2563EB,
+                                ).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -541,77 +713,85 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                             Expanded(
                               child: Container(
                                 height: 1,
-                                color: const Color(0xFF434655).withValues(alpha: 0.3),
+                                color: const Color(
+                                  0xFF434655,
+                                ).withValues(alpha: 0.3),
                               ),
                             ),
                           ],
                         ),
                       ),
                       // Course items
-                      ...courseItems.map((item) => Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1D1F27),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF434655).withValues(alpha: 0.3),
+                      ...courseItems.map(
+                        (item) => Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1D1F27),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF434655,
+                              ).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Status indicator
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: _statusColor(
+                                    item.status,
+                                  ).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  _statusIcon(item.status),
+                                  color: _statusColor(item.status),
+                                  size: 18,
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                // Status indicator
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: _statusColor(item.status).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    _statusIcon(item.status),
-                                    color: _statusColor(item.status),
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.name,
-                                        style: const TextStyle(
-                                          fontFamily: 'Hanken Grotesk',
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFFE1E2ED),
-                                        ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.name,
+                                      style: const TextStyle(
+                                        fontFamily: 'Hanken Grotesk',
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFFE1E2ED),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${item.status.displayName} · Qty ×${item.quantity}',
-                                        style: TextStyle(
-                                          fontFamily: 'JetBrains Mono',
-                                          fontSize: 11,
-                                          color: _statusColor(item.status),
-                                        ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${item.status.displayName} · Qty ×${item.quantity}',
+                                      style: TextStyle(
+                                        fontFamily: 'JetBrains Mono',
+                                        fontSize: 11,
+                                        color: _statusColor(item.status),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  '\$${item.total.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontFamily: 'JetBrains Mono',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFFB4C5FF),
-                                  ),
+                              ),
+                              Text(
+                                '\$${item.total.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontFamily: 'JetBrains Mono',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFB4C5FF),
                                 ),
-                              ],
-                            ),
-                          )),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 12),
                     ],
                   );
@@ -730,6 +910,21 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                   ],
                 ),
                 const SizedBox(height: 12),
+                // Void Check Button
+                OutlinedButton.icon(
+                  onPressed: () => _showVoidDialog(context),
+                  icon: const Icon(Icons.block_rounded, size: 18),
+                  label: const Text('Void Check'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    side: const BorderSide(color: Color(0xFFEF4444)),
+                    foregroundColor: const Color(0xFFEF4444),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 // Close Check
                 FilledButton.icon(
                   onPressed: () => _showPaymentDialog(context, check),
@@ -763,11 +958,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
 }
 
 class _TotalRow extends StatelessWidget {
-  const _TotalRow({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
+  const _TotalRow({required this.label, required this.value, this.valueColor});
 
   final String label;
   final double value;

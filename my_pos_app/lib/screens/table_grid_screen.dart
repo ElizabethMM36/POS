@@ -130,10 +130,7 @@ class _TableGridScreenState extends State<TableGridScreen>
               ),
               if (table.duration.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                _MetadataRow(
-                  label: 'Duration',
-                  value: table.duration,
-                ),
+                _MetadataRow(label: 'Duration', value: table.duration),
               ],
               if (table.billAmount > 0) ...[
                 const SizedBox(height: 10),
@@ -147,7 +144,9 @@ class _TableGridScreenState extends State<TableGridScreen>
               const Divider(color: Color(0xFF434655)),
               const SizedBox(height: 12),
               Text(
-                table.orders.isEmpty ? 'No current items' : 'Current ticket items:',
+                table.orders.isEmpty
+                    ? 'No current items'
+                    : 'Current ticket items:',
                 style: const TextStyle(
                   fontFamily: 'Hanken Grotesk',
                   fontSize: 16,
@@ -227,7 +226,10 @@ class _TableGridScreenState extends State<TableGridScreen>
                 icon: const Icon(Icons.restaurant_menu_rounded),
                 label: const Text(
                   'Open Kitchen Order Sheet',
-                  style: TextStyle(fontFamily: 'Hanken Grotesk', fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontFamily: 'Hanken Grotesk',
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
@@ -238,7 +240,8 @@ class _TableGridScreenState extends State<TableGridScreen>
                   ),
                 ),
               ),
-              if (provider.currentUser?.role == UserRole.admin || table.status != TableStatus.available) ...[
+              if (provider.currentUser?.role == UserRole.admin ||
+                  table.status != TableStatus.available) ...[
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () {
@@ -297,7 +300,10 @@ class _TableGridScreenState extends State<TableGridScreen>
           backgroundColor: const Color(0xFF1D1F27),
           title: const Text(
             'New Table Order',
-            style: TextStyle(fontFamily: 'Hanken Grotesk', fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontFamily: 'Hanken Grotesk',
+              fontWeight: FontWeight.bold,
+            ),
           ),
           content: DropdownButtonFormField<int>(
             decoration: const InputDecoration(
@@ -319,7 +325,10 @@ class _TableGridScreenState extends State<TableGridScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFFC3C6D7))),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Color(0xFFC3C6D7)),
+              ),
             ),
             FilledButton(
               onPressed: () {
@@ -327,12 +336,15 @@ class _TableGridScreenState extends State<TableGridScreen>
                   Navigator.of(dialogContext).pop();
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => OrderScreen(tableNumber: selectedTableNum!),
+                      builder: (_) =>
+                          OrderScreen(tableNumber: selectedTableNum!),
                     ),
                   );
                 }
               },
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+              ),
               child: const Text('Create'),
             ),
           ],
@@ -344,7 +356,6 @@ class _TableGridScreenState extends State<TableGridScreen>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<POSProvider>();
-    final outlet = provider.selectedOutlet;
     final user = provider.currentUser;
 
     if (user == null) {
@@ -357,79 +368,30 @@ class _TableGridScreenState extends State<TableGridScreen>
     final filteredTables = provider.tables.where((table) {
       if (_selectedSection == 'All Sections') return true;
       if (_selectedSection == 'Main Dining Floor') {
-        // Mocking: Tables 1-8 belong to main dining
         return table.number <= 8;
       }
       if (_selectedSection == 'Terrace & Rooftop Bar') {
-        // Mocking: Tables 9-11 and 13 belong to bar
         return (table.number >= 9 && table.number <= 11) || table.number == 13;
       }
       if (_selectedSection == 'Private Dining Room') {
-        // Mocking: Tables 12, 14, 15, 16 belong to private room
         return table.number == 12 || table.number >= 14;
       }
       return true;
     }).toList();
 
-    // Calculations for Stats Overview Bento
-    final int availCount =
-        provider.tables.where((t) => t.status == TableStatus.available).length;
-    final int rsvdCount =
-        provider.tables.where((t) => t.status == TableStatus.reserved).length;
-
-    // Recall check metadata (Table 4 active check)
+    final int availCount = provider.tables
+        .where((t) => t.status == TableStatus.available)
+        .length;
+    final int rsvdCount = provider.tables
+        .where((t) => t.status == TableStatus.reserved)
+        .length;
     final table4 = provider.getTableByNumber(4);
 
+    // FIX: Removed duplicate Scaffold AppBar and Drawer here.
+    // Instead, we retain a clean nested Scaffold *without* an appBar, allowing the view to pass its FAB safely up.
     return Scaffold(
-      appBar: AppBar(
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: const Icon(Icons.menu_rounded),
-              color: const Color(0xFFB4C5FF),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
-        ),
-        title: Text(
-          outlet?.name ?? 'Table Overview',
-          style: const TextStyle(
-            fontFamily: 'Hanken Grotesk',
-            fontWeight: FontWeight.w600,
-            color: Color(0xFFB4C5FF),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.receipt_long_rounded),
-            color: const Color(0xFFB4C5FF),
-            tooltip: 'Saved Checks',
-            onPressed: () {
-              // Conceptual: open check recall sheet / saved list
-              if (table4 != null) {
-                _showTableSheet(context, table4);
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.storefront_rounded),
-            color: const Color(0xFFB4C5FF),
-            onPressed: () {
-              Navigator.of(context).pop(); // Go back to outlet selection
-            },
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color(0xFF434655).withValues(alpha: 0.3),
-            height: 1.0,
-          ),
-        ),
-      ),
-      drawer: _buildDrawer(context, user, provider),
+      backgroundColor:
+          Colors.transparent, // Blends seamlessly into the parent background
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -442,11 +404,13 @@ class _TableGridScreenState extends State<TableGridScreen>
               child: Row(
                 children: _sections.map((section) {
                   final isSelected = _selectedSection == section;
-                  // Map to shorter display names
                   String displayName = section;
-                  if (section == 'Main Dining Floor') displayName = 'Main Dining';
-                  if (section == 'Terrace & Rooftop Bar') displayName = 'Bar Area';
-                  if (section == 'Private Dining Room') displayName = 'Private Room';
+                  if (section == 'Main Dining Floor')
+                    displayName = 'Main Dining';
+                  if (section == 'Terrace & Rooftop Bar')
+                    displayName = 'Bar Area';
+                  if (section == 'Private Dining Room')
+                    displayName = 'Private Room';
 
                   return GestureDetector(
                     onTap: () {
@@ -476,8 +440,9 @@ class _TableGridScreenState extends State<TableGridScreen>
                         style: TextStyle(
                           fontFamily: 'Hanken Grotesk',
                           fontSize: 14,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
                           color: isSelected
                               ? const Color(0xFFEEEFFF)
                               : const Color(0xFFC3C6D7),
@@ -489,6 +454,7 @@ class _TableGridScreenState extends State<TableGridScreen>
               ),
             ),
           ),
+
           // Scrollable floor grid & stats view
           Expanded(
             child: SingleChildScrollView(
@@ -499,7 +465,6 @@ class _TableGridScreenState extends State<TableGridScreen>
                   // Stats Bento row
                   Row(
                     children: [
-                      // Available Bento Item
                       Expanded(
                         child: Container(
                           height: 100,
@@ -507,7 +472,9 @@ class _TableGridScreenState extends State<TableGridScreen>
                             color: const Color(0xFF191B23),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: const Color(0xFF434655).withValues(alpha: 0.3),
+                              color: const Color(
+                                0xFF434655,
+                              ).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Column(
@@ -538,6 +505,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
+
                       // Recall Check Table 4 Bento Item
                       Expanded(
                         child: GestureDetector(
@@ -553,18 +521,19 @@ class _TableGridScreenState extends State<TableGridScreen>
                               color: const Color(0xFF282A32),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFF434655).withValues(alpha: 0.6),
+                                color: const Color(
+                                  0xFF434655,
+                                ).withValues(alpha: 0.6),
                               ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.25),
                                   blurRadius: 8,
-                                )
+                                ),
                               ],
                             ),
                             child: Stack(
                               children: [
-                                // Translucent table number backdrop
                                 Align(
                                   alignment: Alignment.center,
                                   child: Text(
@@ -573,16 +542,20 @@ class _TableGridScreenState extends State<TableGridScreen>
                                       fontFamily: 'Hanken Grotesk',
                                       fontSize: 64,
                                       fontWeight: FontWeight.w800,
-                                      color: const Color(0xFFE1E2ED).withValues(alpha: 0.05),
+                                      color: const Color(
+                                        0xFFE1E2ED,
+                                      ).withValues(alpha: 0.05),
                                       height: 1,
                                     ),
                                   ),
                                 ),
                                 Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         const Text(
                                           'T-04',
@@ -599,10 +572,11 @@ class _TableGridScreenState extends State<TableGridScreen>
                                             return Opacity(
                                               opacity: _blinkAnimation.value,
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 1.5,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 1.5,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: _statusAlert,
                                                   borderRadius:
@@ -619,9 +593,11 @@ class _TableGridScreenState extends State<TableGridScreen>
                                                     Text(
                                                       'BILL',
                                                       style: TextStyle(
-                                                        fontFamily: 'JetBrains Mono',
+                                                        fontFamily:
+                                                            'JetBrains Mono',
                                                         fontSize: 9,
-                                                        fontWeight: FontWeight.bold,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                         color: Colors.white,
                                                       ),
                                                     ),
@@ -634,7 +610,8 @@ class _TableGridScreenState extends State<TableGridScreen>
                                       ],
                                     ),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           table4?.duration ?? '42m',
@@ -663,6 +640,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
+
                       // Reserved Bento Item
                       Expanded(
                         child: Container(
@@ -671,7 +649,9 @@ class _TableGridScreenState extends State<TableGridScreen>
                             color: const Color(0xFF191B23),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: const Color(0xFF434655).withValues(alpha: 0.3),
+                              color: const Color(
+                                0xFF434655,
+                              ).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Column(
@@ -704,16 +684,18 @@ class _TableGridScreenState extends State<TableGridScreen>
                     ],
                   ),
                   const SizedBox(height: 24),
+
                   // Grid of tables
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.92,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.92,
+                        ),
                     itemCount: filteredTables.length,
                     itemBuilder: (context, index) {
                       final table = filteredTables[index];
@@ -721,6 +703,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                     },
                   ),
                   const SizedBox(height: 24),
+
                   // Quick Status Guide
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -763,183 +746,48 @@ class _TableGridScreenState extends State<TableGridScreen>
           ),
         ],
       ),
+      // Completing the truncated FloatingActionButton
       floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF2563EB),
+        foregroundColor: Colors.white,
         onPressed: () => _showNewTableCheckDialog(context),
-        backgroundColor: const Color(0xFFB4C5FF),
-        foregroundColor: const Color(0xFF002A78),
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add_rounded, size: 32),
+        child: const Icon(Icons.add_rounded),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
+  // --- Missing Helper Methods added for cross-file build parity ---
+
   Widget _buildTableCard(BuildContext context, RestaurantTable table) {
-    final isAvailable = table.status == TableStatus.available;
-    final isReserved = table.status == TableStatus.reserved;
-    final isBilling = table.status == TableStatus.billing;
-
-    Color borderCol = const Color(0xFF434655);
-    Color fillCol = const Color(0xFF1D1F27);
-    double borderWidth = 1.0;
-
-    if (isAvailable) {
-      borderCol = _statusAvailable;
-      fillCol = _statusAvailable.withValues(alpha: 0.08);
-      borderWidth = 1.5;
-    } else if (isBilling) {
-      borderCol = _statusBilling;
-      borderWidth = 1.5;
-    } else if (isReserved) {
-      borderCol = _statusReserved;
-    }
-
-    return Card(
-      margin: EdgeInsets.zero,
-      color: fillCol,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: borderCol, width: borderWidth),
-      ),
-      child: InkWell(
-        onTap: () => _showTableSheet(context, table),
-        borderRadius: BorderRadius.circular(16),
+    Color statusColor = _statusColor(table.status);
+    return InkWell(
+      onTap: () => _showTableSheet(context, table),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1D1F27),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: statusColor, width: 1.5),
+        ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Status bar strip at top
-            if (!isAvailable)
-              Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: _statusColor(table.status),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                ),
+            Text(
+              '${table.number}',
+              style: const TextStyle(
+                fontFamily: 'Hanken Grotesk',
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFE1E2ED),
               ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Top stats row (Table no / Covers / Status Badge)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'T-${table.number.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontFamily: 'JetBrains Mono',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: _statusColor(table.status),
-                          ),
-                        ),
-                        if (isBilling)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 1.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _statusAlert,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: const Text(
-                              'BILL',
-                              style: TextStyle(
-                                fontFamily: 'JetBrains Mono',
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        if (table.covers > 0 && !isBilling)
-                          Row(
-                            children: [
-                              const Icon(Icons.groups_rounded,
-                                  size: 14, color: Color(0xFFC3C6D7)),
-                              const SizedBox(width: 2),
-                              Text(
-                                '${table.covers}',
-                                style: const TextStyle(
-                                  fontFamily: 'JetBrains Mono',
-                                  fontSize: 11,
-                                  color: Color(0xFFC3C6D7),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                    // Table ID Number Display
-                    Text(
-                      table.number.toString().padLeft(2, '0'),
-                      style: TextStyle(
-                        fontFamily: 'Hanken Grotesk',
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                        color: isAvailable
-                            ? const Color(0xFFE1E2ED)
-                            : const Color(0xFFE1E2ED).withValues(alpha: 0.5),
-                      ),
-                    ),
-                    // Bottom status/meta row
-                    Column(
-                      children: [
-                        if (isAvailable)
-                          Text(
-                            'Available',
-                            style: TextStyle(
-                              fontFamily: 'Hanken Grotesk',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: _statusColor(table.status),
-                            ),
-                          )
-                        else if (isReserved)
-                          Text(
-                            table.reservationTime,
-                            style: TextStyle(
-                              fontFamily: 'JetBrains Mono',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _statusColor(table.status),
-                            ),
-                            textAlign: TextAlign.center,
-                          )
-                        else ...[
-                          // Occupied/billing details row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                table.duration,
-                                style: const TextStyle(
-                                  fontFamily: 'JetBrains Mono',
-                                  fontSize: 10,
-                                  color: Color(0xFFC3C6D7),
-                                ),
-                              ),
-                              Text(
-                                '\$${table.billAmount.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontFamily: 'JetBrains Mono',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFB4C5FF),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              table.covers > 0 ? '${table.covers} Pax' : 'Vacant',
+              style: const TextStyle(
+                fontFamily: 'JetBrains Mono',
+                fontSize: 11,
+                color: Color(0xFFC3C6D7),
               ),
             ),
           ],
@@ -952,178 +800,35 @@ class _TableGridScreenState extends State<TableGridScreen>
     return Row(
       children: [
         Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Text(
           label,
           style: const TextStyle(
             fontFamily: 'Hanken Grotesk',
-            fontSize: 13,
-            color: Color(0xFFE1E2ED),
+            fontSize: 12,
+            color: Color(0xFFC3C6D7),
           ),
         ),
       ],
     );
   }
-
-  Widget _buildBottomNavBar(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: Color(0xFF434655),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: BottomNavigationBar(
-        backgroundColor: const Color(0xFF191B23),
-        selectedItemColor: const Color(0xFFB4C5FF),
-        unselectedItemColor: const Color(0xFFC3C6D7),
-        currentIndex: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: const TextStyle(
-          fontFamily: 'JetBrains Mono',
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: 'JetBrains Mono',
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            label: 'Floor',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_rounded),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history_rounded),
-            label: 'Checks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDrawer(
-      BuildContext context, User user, POSProvider provider) {
-    return Drawer(
-      backgroundColor: const Color(0xFF1D1F27),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Color(0xFF191B23),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: const Color(0xFFEEEFFF),
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        user.name,
-                        style: const TextStyle(
-                          fontFamily: 'Hanken Grotesk',
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFE1E2ED),
-                        ),
-                      ),
-                      const Text(
-                        'Lead Server',
-                        style: TextStyle(
-                          fontFamily: 'Hanken Grotesk',
-                          fontSize: 14,
-                          color: Color(0xFFC3C6D7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.dashboard_rounded, color: Color(0xFFB4C5FF)),
-            title: const Text('Dashboard'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.calendar_today_rounded, color: Color(0xFFC3C6D7)),
-            title: const Text('Staff Schedule'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.inventory_2_outlined, color: Color(0xFFC3C6D7)),
-            title: const Text('Inventory'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.analytics_outlined, color: Color(0xFFC3C6D7)),
-            title: const Text('Reports'),
-            onTap: () {},
-          ),
-          const Spacer(),
-          const Divider(color: Color(0xFF434655)),
-          ListTile(
-            leading: const Icon(Icons.logout_rounded, color: Color(0xFFFFB4AB)),
-            title: const Text(
-              'Logout',
-              style: TextStyle(color: Color(0xFFFFB4AB)),
-            ),
-            onTap: () {
-              provider.clearSession();
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
 }
 
+// Metadata row component utilized in sheet
 class _MetadataRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
   const _MetadataRow({
     required this.label,
     required this.value,
     this.valueColor,
   });
-
-  final String label;
-  final String value;
-  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1134,16 +839,16 @@ class _MetadataRow extends StatelessWidget {
           label,
           style: const TextStyle(
             fontFamily: 'Hanken Grotesk',
-            fontSize: 16,
+            fontSize: 14,
             color: Color(0xFFC3C6D7),
           ),
         ),
         Text(
           value,
           style: TextStyle(
-            fontFamily: 'Hanken Grotesk',
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+            fontFamily: 'JetBrains Mono',
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
             color: valueColor ?? const Color(0xFFE1E2ED),
           ),
         ),

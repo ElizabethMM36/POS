@@ -120,11 +120,7 @@ enum OrderItemStatus {
 }
 
 class User {
-  const User({
-    required this.name,
-    required this.role,
-    this.pin = '0000',
-  });
+  const User({required this.name, required this.role, this.pin = '0000'});
 
   final String name;
   final UserRole role;
@@ -132,11 +128,7 @@ class User {
 }
 
 class Outlet {
-  const Outlet({
-    required this.id,
-    required this.name,
-    required this.location,
-  });
+  const Outlet({required this.id, required this.name, required this.location});
 
   final String id;
   final String name;
@@ -208,8 +200,7 @@ class OrderItem {
   }
 
   @override
-  String toString() =>
-      '$name ×$quantity (Course $courseNumber)';
+  String toString() => '$name ×$quantity (Course $courseNumber)';
 }
 
 class Check {
@@ -227,6 +218,7 @@ class Check {
     this.tip = 0.0,
     this.discount = 0.0,
     this.paymentMethod = '',
+    this.voidReason = '',
   }) : items = items ?? [];
 
   final String id;
@@ -242,6 +234,7 @@ class Check {
   double tip;
   double discount;
   String paymentMethod;
+  String voidReason;
 
   double get total => subtotal + tax + tip - discount;
 
