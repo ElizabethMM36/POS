@@ -21,8 +21,7 @@ enum UserRole {
 enum TableStatus {
   available,
   occupied,
-  billing,
-  reserved;
+  readyForBill;
 
   String get displayName {
     switch (this) {
@@ -30,10 +29,8 @@ enum TableStatus {
         return 'Available';
       case TableStatus.occupied:
         return 'Occupied';
-      case TableStatus.billing:
-        return 'Billing';
-      case TableStatus.reserved:
-        return 'Reserved';
+      case TableStatus.readyForBill:
+        return 'Ready for Bill';
     }
   }
 }
@@ -63,13 +60,13 @@ enum MenuCategory {
   String get icon {
     switch (this) {
       case MenuCategory.appetizers:
-        return '🥗';
+        return '🍲';
       case MenuCategory.mains:
-        return '🥩';
+        return '🍕';
       case MenuCategory.desserts:
         return '🍰';
       case MenuCategory.beverages:
-        return '🍷';
+        return '☕';
       case MenuCategory.sides:
         return '🍟';
     }
@@ -119,6 +116,23 @@ enum OrderItemStatus {
   }
 }
 
+enum DiscountType {
+  employeeDiscount,
+  deliveroo,
+  customAmount;
+
+  String get displayName {
+    switch (this) {
+      case DiscountType.employeeDiscount:
+        return 'Employee Discount';
+      case DiscountType.deliveroo:
+        return 'Deliveroo';
+      case DiscountType.customAmount:
+        return 'Custom Amount';
+    }
+  }
+}
+
 class User {
   const User({required this.name, required this.role, this.pin = '0000'});
 
@@ -156,6 +170,18 @@ class MenuItem {
 }
 
 class OrderItem {
+  final String id;
+  final String name;
+  int quantity;
+  int courseNumber; // Track course timing assignment
+  final double price;
+  final List<String> modifiers;
+  OrderItemStatus status; // Track individual item cooking/serving status
+  final String notes;
+  int seatNumber;
+  int coverNumber;
+  List<String> tags; // Track customized fields like allergies or substitutions
+
   OrderItem({
     required this.name,
     required this.quantity,
@@ -164,17 +190,14 @@ class OrderItem {
     this.modifiers = const [],
     this.status = OrderItemStatus.pending,
     this.notes = '',
+    this.seatNumber = 1,
+    this.coverNumber = 0,
+    List<String>? tags,
     String? id,
-  }) : id = id ?? '${DateTime.now().millisecondsSinceEpoch}_$name';
-
-  final String id;
-  final String name;
-  int quantity;
-  final int courseNumber;
-  final double price;
-  final List<String> modifiers;
-  OrderItemStatus status;
-  final String notes;
+  }) : tags = tags ?? [],
+       id =
+           id ??
+           '${DateTime.now().millisecondsSinceEpoch}_${name}_C${courseNumber}_S$seatNumber';
 
   double get total => price * quantity;
 
@@ -186,21 +209,25 @@ class OrderItem {
     List<String>? modifiers,
     OrderItemStatus? status,
     String? notes,
+    int? seatNumber,
+    int? coverNumber,
+    List<String>? tags,
+    String? id,
   }) {
     return OrderItem(
-      id: id,
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       courseNumber: courseNumber ?? this.courseNumber,
       price: price ?? this.price,
-      modifiers: modifiers ?? this.modifiers,
+      modifiers: modifiers ?? List<String>.from(this.modifiers),
       status: status ?? this.status,
       notes: notes ?? this.notes,
+      seatNumber: seatNumber ?? this.seatNumber,
+      coverNumber: coverNumber ?? this.coverNumber,
+      tags: tags ?? List<String>.from(this.tags),
+      id: id ?? this.id,
     );
   }
-
-  @override
-  String toString() => '$name ×$quantity (Course $courseNumber)';
 }
 
 class Check {
@@ -217,6 +244,7 @@ class Check {
     this.tax = 0.0,
     this.tip = 0.0,
     this.discount = 0.0,
+    this.discountType,
     this.paymentMethod = '',
     this.voidReason = '',
   }) : items = items ?? [];
@@ -233,6 +261,7 @@ class Check {
   double tax;
   double tip;
   double discount;
+  DiscountType? discountType;
   String paymentMethod;
   String voidReason;
 

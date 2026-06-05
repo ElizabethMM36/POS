@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
+import 'package:my_pos_app/providers/theme_provider.dart';
 import 'package:my_pos_app/screens/admin_rbac_screen.dart';
 
 /// The "Settings" tab — profile card, outlet info, app configuration,
@@ -13,21 +14,24 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<POSProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
     final user = provider.currentUser;
     final outlet = provider.selectedOutlet;
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF11131B),
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF11131B),
+        backgroundColor: scaffoldBg,
         automaticallyImplyLeading: false,
-        title: const Text(
+        title: Text(
           'Settings & Profile',
           style: TextStyle(
             fontFamily: 'Hanken Grotesk',
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: Color(0xFFE1E2ED),
+            color: cs.onSurface,
           ),
         ),
       ),
@@ -42,15 +46,15 @@ class SettingsScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF2563EB).withValues(alpha: 0.2),
-                    const Color(0xFF191B23),
+                    cs.primaryContainer.withValues(alpha: 0.2),
+                    cs.surfaceContainerLow,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                  color: cs.primaryContainer.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -60,11 +64,11 @@ class SettingsScreen extends StatelessWidget {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB),
+                      color: cs.primaryContainer,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                          color: cs.primaryContainer.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -91,11 +95,11 @@ class SettingsScreen extends StatelessWidget {
                       children: [
                         Text(
                           user?.name ?? 'Unknown',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Hanken Grotesk',
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFFE1E2ED),
+                            color: cs.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -105,19 +109,19 @@ class SettingsScreen extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+                            color: cs.primaryContainer.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(9999),
                             border: Border.all(
-                              color: const Color(0xFF2563EB).withValues(alpha: 0.4),
+                              color: cs.primaryContainer.withValues(alpha: 0.4),
                             ),
                           ),
                           child: Text(
                             user?.role.displayName ?? 'Staff',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'JetBrains Mono',
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFB4C5FF),
+                              color: cs.primary,
                             ),
                           ),
                         ),
@@ -163,10 +167,10 @@ class SettingsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1D1F27),
+                color: cs.surfaceContainer,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFF434655).withValues(alpha: 0.3),
+                  color: cs.outlineVariant.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -191,25 +195,25 @@ class SettingsScreen extends StatelessWidget {
                       children: [
                         Text(
                           outlet?.name ?? 'No outlet selected',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Hanken Grotesk',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFE1E2ED),
+                            color: cs.onSurface,
                           ),
                         ),
                         Text(
                           outlet?.location ?? '',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'JetBrains Mono',
                             fontSize: 11,
-                            color: Color(0xFFC3C6D7),
+                            color: cs.onSurfaceVariant,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.swap_horiz_rounded, color: Color(0xFF8D90A0)),
+                  Icon(Icons.swap_horiz_rounded, color: cs.outline),
                 ],
               ),
             ),
@@ -222,7 +226,7 @@ class SettingsScreen extends StatelessWidget {
               icon: Icons.access_time_rounded,
               label: 'Session Started',
               value: _formatTime(DateTime.now()),
-              color: const Color(0xFFB4C5FF),
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 8),
             _InfoTile(
@@ -243,13 +247,26 @@ class SettingsScreen extends StatelessWidget {
             // App Settings
             _SectionHeader(title: 'PREFERENCES'),
             const SizedBox(height: 8),
+            // ── Theme Toggle ──
+            _SettingsTile(
+              icon: themeProvider.isDarkMode
+                  ? Icons.dark_mode_rounded
+                  : Icons.light_mode_rounded,
+              label: themeProvider.isDarkMode ? 'Dark Mode' : 'Light Mode',
+              subtitle: 'Switch between dark and light appearance',
+              trailing: Switch(
+                value: themeProvider.isDarkMode,
+                onChanged: (_) => themeProvider.toggleTheme(),
+                activeColor: cs.primaryContainer,
+              ),
+            ),
             _SettingsTile(
               icon: Icons.notifications_outlined,
               label: 'Order Notifications',
               trailing: Switch(
                 value: true,
                 onChanged: (_) {},
-                activeColor: const Color(0xFF2563EB),
+                activeColor: cs.primaryContainer,
               ),
             ),
             _SettingsTile(
@@ -258,7 +275,7 @@ class SettingsScreen extends StatelessWidget {
               trailing: Switch(
                 value: true,
                 onChanged: (_) {},
-                activeColor: const Color(0xFF2563EB),
+                activeColor: cs.primaryContainer,
               ),
             ),
             _SettingsTile(
@@ -267,7 +284,7 @@ class SettingsScreen extends StatelessWidget {
               trailing: Switch(
                 value: false,
                 onChanged: (_) {},
-                activeColor: const Color(0xFF2563EB),
+                activeColor: cs.primaryContainer,
               ),
             ),
             const SizedBox(height: 24),
@@ -280,7 +297,7 @@ class SettingsScreen extends StatelessWidget {
                 icon: Icons.admin_panel_settings_rounded,
                 label: 'Staff & Permissions (RBAC)',
                 subtitle: 'Manage team roles and access',
-                trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF8D90A0)),
+                trailing: Icon(Icons.chevron_right_rounded, color: cs.outline),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -293,14 +310,14 @@ class SettingsScreen extends StatelessWidget {
                 icon: Icons.menu_book_outlined,
                 label: 'Menu Management',
                 subtitle: 'Edit items, pricing, availability',
-                trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF8D90A0)),
+                trailing: Icon(Icons.chevron_right_rounded, color: cs.outline),
                 onTap: () {},
               ),
               _SettingsTile(
                 icon: Icons.analytics_outlined,
                 label: 'Reports & Analytics',
                 subtitle: 'Sales, covers, and performance',
-                trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF8D90A0)),
+                trailing: Icon(Icons.chevron_right_rounded, color: cs.outline),
                 onTap: () {},
               ),
               const SizedBox(height: 24),
@@ -312,26 +329,26 @@ class SettingsScreen extends StatelessWidget {
                 showDialog<void>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    backgroundColor: const Color(0xFF1D1F27),
+                    backgroundColor: cs.surfaceContainer,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    title: const Text(
+                    title: Text(
                       'End Session?',
                       style: TextStyle(
                         fontFamily: 'Hanken Grotesk',
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFE1E2ED),
+                        color: cs.onSurface,
                       ),
                     ),
                     content: Text(
                       'You have ${provider.openChecks.length} open checks. Logging out will end your session.',
-                      style: const TextStyle(color: Color(0xFFC3C6D7)),
+                      style: TextStyle(color: cs.onSurfaceVariant),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel', style: TextStyle(color: Color(0xFFC3C6D7))),
+                        child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
                       ),
                       FilledButton(
                         onPressed: () {
@@ -360,7 +377,7 @@ class SettingsScreen extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
                 backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.15),
-                foregroundColor: const Color(0xFFFFB4AB),
+                foregroundColor: cs.error,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                   side: const BorderSide(color: Color(0xFFEF4444), width: 1),
@@ -370,13 +387,13 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             // App version
-            const Center(
+            Center(
               child: Text(
                 'Command Center POS v1.0.0',
                 style: TextStyle(
                   fontFamily: 'JetBrains Mono',
                   fontSize: 11,
-                  color: Color(0xFF434655),
+                  color: cs.outlineVariant,
                 ),
               ),
             ),
@@ -403,11 +420,11 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: 'JetBrains Mono',
         fontSize: 12,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF8D90A0),
+        color: Theme.of(context).colorScheme.outline,
         letterSpacing: 0.08,
       ),
     );
@@ -429,13 +446,14 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1F27),
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF434655).withValues(alpha: 0.3),
+          color: cs.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -453,10 +471,10 @@ class _InfoTile extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Hanken Grotesk',
                 fontSize: 14,
-                color: Color(0xFFC3C6D7),
+                color: cs.onSurfaceVariant,
               ),
             ),
           ),
@@ -492,21 +510,22 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1D1F27),
+          color: cs.surfaceContainer,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: const Color(0xFF434655).withValues(alpha: 0.3),
+            color: cs.outlineVariant.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: const Color(0xFFB4C5FF)),
+            Icon(icon, size: 20, color: cs.primary),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -514,20 +533,20 @@ class _SettingsTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Hanken Grotesk',
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFE1E2ED),
+                      color: cs.onSurface,
                     ),
                   ),
                   if (subtitle != null)
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'JetBrains Mono',
                         fontSize: 11,
-                        color: Color(0xFF8D90A0),
+                        color: cs.outline,
                       ),
                     ),
                 ],

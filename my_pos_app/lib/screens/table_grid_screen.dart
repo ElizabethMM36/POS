@@ -3,12 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
 import 'package:my_pos_app/screens/order_screen.dart';
+import 'package:my_pos_app/screens/order_summary_screen.dart';
 
 // Color guidelines from DESIGN.md
 const Color _statusAvailable = Color(0xFF22C55E);
 const Color _statusOccupied = Color(0xFFEF4444);
-const Color _statusBilling = Color(0xFFF59E0B);
-const Color _statusReserved = Color(0xFFF59E0B);
+const Color _statusReadyForBill = Color(0xFF8B5CF6);
 const Color _statusAlert = Color(0xFFEC4899);
 
 class TableGridScreen extends StatefulWidget {
@@ -56,10 +56,8 @@ class _TableGridScreenState extends State<TableGridScreen>
         return _statusAvailable;
       case TableStatus.occupied:
         return _statusOccupied;
-      case TableStatus.billing:
-        return _statusBilling;
-      case TableStatus.reserved:
-        return _statusReserved;
+      case TableStatus.readyForBill:
+        return _statusReadyForBill;
     }
   }
 
@@ -223,10 +221,16 @@ class _TableGridScreenState extends State<TableGridScreen>
                     ),
                   );
                 },
-                icon: const Icon(Icons.restaurant_menu_rounded),
-                label: const Text(
-                  'Open Kitchen Order Sheet',
-                  style: TextStyle(
+                icon: Icon(
+                  table.status == TableStatus.occupied
+                      ? Icons.add_to_photos_rounded
+                      : Icons.restaurant_menu_rounded,
+                ),
+                label: Text(
+                  table.status == TableStatus.occupied
+                      ? 'Add Items to Order'
+                      : 'Open Kitchen Order Sheet',
+                  style: const TextStyle(
                     fontFamily: 'Hanken Grotesk',
                     fontWeight: FontWeight.bold,
                   ),
@@ -240,6 +244,38 @@ class _TableGridScreenState extends State<TableGridScreen>
                   ),
                 ),
               ),
+              if (table.status == TableStatus.occupied ||
+                  table.status == TableStatus.readyForBill) ...[
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => OrderSummaryScreen(
+                          checkId: table.activeCheckId ?? '',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.point_of_sale_rounded),
+                  label: const Text(
+                    'Proceed to Checkout',
+                    style: TextStyle(
+                      fontFamily: 'Hanken Grotesk',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    backgroundColor: const Color(0xFF22C55E),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
               if (provider.currentUser?.role == UserRole.admin ||
                   table.status != TableStatus.available) ...[
                 const SizedBox(height: 12),
@@ -364,7 +400,6 @@ class _TableGridScreenState extends State<TableGridScreen>
       );
     }
 
-    // Filter tables based on section filter selection
     final filteredTables = provider.tables.where((table) {
       if (_selectedSection == 'All Sections') return true;
       if (_selectedSection == 'Main Dining Floor') {
@@ -382,20 +417,23 @@ class _TableGridScreenState extends State<TableGridScreen>
     final int availCount = provider.tables
         .where((t) => t.status == TableStatus.available)
         .length;
-    final int rsvdCount = provider.tables
-        .where((t) => t.status == TableStatus.reserved)
-        .length;
-    final table4 = provider.getTableByNumber(4);
 
-    // FIX: Removed duplicate Scaffold AppBar and Drawer here.
-    // Instead, we retain a clean nested Scaffold *without* an appBar, allowing the view to pass its FAB safely up.
+    // FIX: Look up first table ready for bill dynamically. Fallback to first occupied table if none are ready.
+    final RestaurantTable? activeAlertTable = provider.tables
+        .cast<RestaurantTable?>()
+        .firstWhere(
+          (t) => t?.status == TableStatus.readyForBill,
+          orElse: () => provider.tables.cast<RestaurantTable?>().firstWhere(
+            (t) => t?.status == TableStatus.occupied,
+            orElse: () => null,
+          ),
+        );
+
     return Scaffold(
-      backgroundColor:
-          Colors.transparent, // Blends seamlessly into the parent background
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Section filters capsules
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             color: const Color(0xFF11131B),
@@ -454,15 +492,12 @@ class _TableGridScreenState extends State<TableGridScreen>
               ),
             ),
           ),
-
-          // Scrollable floor grid & stats view
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Stats Bento row
                   Row(
                     children: [
                       Expanded(
@@ -506,12 +541,12 @@ class _TableGridScreenState extends State<TableGridScreen>
                       ),
                       const SizedBox(width: 12),
 
-                      // Recall Check Table 4 Bento Item
+                      // Dynamic Alert/Bill Notification Bento Item
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            if (table4 != null) {
-                              _showTableSheet(context, table4);
+                            if (activeAlertTable != null) {
+                              _showTableSheet(context, activeAlertTable);
                             }
                           },
                           child: Container(
@@ -537,7 +572,11 @@ class _TableGridScreenState extends State<TableGridScreen>
                                 Align(
                                   alignment: Alignment.center,
                                   child: Text(
-                                    '04',
+                                    activeAlertTable != null
+                                        ? activeAlertTable.number
+                                              .toString()
+                                              .padLeft(2, '0')
+                                        : '--',
                                     style: TextStyle(
                                       fontFamily: 'Hanken Grotesk',
                                       fontSize: 64,
@@ -557,56 +596,66 @@ class _TableGridScreenState extends State<TableGridScreen>
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        const Text(
-                                          'T-04',
+                                        Text(
+                                          activeAlertTable != null
+                                              ? 'T-${activeAlertTable.number.toString().padLeft(2, '0')}'
+                                              : 'T--',
                                           style: TextStyle(
                                             fontFamily: 'JetBrains Mono',
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
-                                            color: _statusOccupied,
+                                            color:
+                                                activeAlertTable?.status ==
+                                                    TableStatus.readyForBill
+                                                ? _statusReadyForBill
+                                                : _statusOccupied,
                                           ),
                                         ),
-                                        AnimatedBuilder(
-                                          animation: _blinkAnimation,
-                                          builder: (context, child) {
-                                            return Opacity(
-                                              opacity: _blinkAnimation.value,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 1.5,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: _statusAlert,
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                ),
-                                                child: const Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.receipt_rounded,
-                                                      size: 10,
-                                                      color: Colors.white,
-                                                    ),
-                                                    SizedBox(width: 2),
-                                                    Text(
-                                                      'BILL',
-                                                      style: TextStyle(
-                                                        fontFamily:
-                                                            'JetBrains Mono',
-                                                        fontSize: 9,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                        if (activeAlertTable?.status ==
+                                            TableStatus.readyForBill)
+                                          AnimatedBuilder(
+                                            animation: _blinkAnimation,
+                                            builder: (context, child) {
+                                              return Opacity(
+                                                opacity: _blinkAnimation.value,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 1.5,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: _statusAlert,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  child: const Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.receipt_rounded,
+                                                        size: 10,
                                                         color: Colors.white,
                                                       ),
-                                                    ),
-                                                  ],
+                                                      SizedBox(width: 2),
+                                                      Text(
+                                                        'BILL',
+                                                        style: TextStyle(
+                                                          fontFamily:
+                                                              'JetBrains Mono',
+                                                          fontSize: 9,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                            );
-                                          },
-                                        ),
+                                              );
+                                            },
+                                          ),
                                       ],
                                     ),
                                     Row(
@@ -614,7 +663,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          table4?.duration ?? '42m',
+                                          activeAlertTable?.duration ?? '--',
                                           style: const TextStyle(
                                             fontFamily: 'JetBrains Mono',
                                             fontSize: 11,
@@ -622,7 +671,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                                           ),
                                         ),
                                         Text(
-                                          '\$${(table4?.billAmount ?? 84.50).toStringAsFixed(2)}',
+                                          '\$${(activeAlertTable?.billAmount ?? 0.00).toStringAsFixed(2)}',
                                           style: const TextStyle(
                                             fontFamily: 'JetBrains Mono',
                                             fontSize: 13,
@@ -640,52 +689,9 @@ class _TableGridScreenState extends State<TableGridScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
-
-                      // Reserved Bento Item
-                      Expanded(
-                        child: Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF191B23),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color(
-                                0xFF434655,
-                              ).withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'RSVD',
-                                style: TextStyle(
-                                  fontFamily: 'JetBrains Mono',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: _statusReserved,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                rsvdCount.toString().padLeft(2, '0'),
-                                style: const TextStyle(
-                                  fontFamily: 'Hanken Grotesk',
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFFE1E2ED),
-                                  letterSpacing: -0.02,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // Grid of tables
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -703,8 +709,6 @@ class _TableGridScreenState extends State<TableGridScreen>
                     },
                   ),
                   const SizedBox(height: 24),
-
-                  // Quick Status Guide
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -733,7 +737,10 @@ class _TableGridScreenState extends State<TableGridScreen>
                           children: [
                             _buildLegendItem('Available', _statusAvailable),
                             _buildLegendItem('Occupied', _statusOccupied),
-                            _buildLegendItem('Reserved', _statusReserved),
+                            _buildLegendItem(
+                              'Ready for Bill',
+                              _statusReadyForBill,
+                            ),
                           ],
                         ),
                       ],
@@ -746,7 +753,6 @@ class _TableGridScreenState extends State<TableGridScreen>
           ),
         ],
       ),
-      // Completing the truncated FloatingActionButton
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
@@ -756,10 +762,10 @@ class _TableGridScreenState extends State<TableGridScreen>
     );
   }
 
-  // --- Missing Helper Methods added for cross-file build parity ---
-
   Widget _buildTableCard(BuildContext context, RestaurantTable table) {
     Color statusColor = _statusColor(table.status);
+    final shouldShowPrice = table.status != TableStatus.available;
+
     return InkWell(
       onTap: () => _showTableSheet(context, table),
       borderRadius: BorderRadius.circular(12),
@@ -771,6 +777,7 @@ class _TableGridScreenState extends State<TableGridScreen>
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               '${table.number}',
@@ -790,6 +797,18 @@ class _TableGridScreenState extends State<TableGridScreen>
                 color: Color(0xFFC3C6D7),
               ),
             ),
+            if (shouldShowPrice) ...[
+              const SizedBox(height: 8),
+              Text(
+                '\$${table.billAmount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB4C5FF),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -818,7 +837,6 @@ class _TableGridScreenState extends State<TableGridScreen>
   }
 }
 
-// Metadata row component utilized in sheet
 class _MetadataRow extends StatelessWidget {
   final String label;
   final String value;

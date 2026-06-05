@@ -12,6 +12,7 @@ class OutletScreen extends StatelessWidget {
     final provider = context.watch<POSProvider>();
     final user = provider.currentUser;
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     if (user == null) {
       return const Scaffold(
@@ -28,32 +29,32 @@ class OutletScreen extends StatelessWidget {
           builder: (context) {
             return IconButton(
               icon: const Icon(Icons.menu_rounded),
-              color: const Color(0xFFB4C5FF),
+              color: cs.primary,
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
             );
           },
         ),
-        title: const Text(
+        title: Text(
           'Table Overview',
           style: TextStyle(
             fontFamily: 'Hanken Grotesk',
             fontWeight: FontWeight.w600,
-            color: Color(0xFFB4C5FF),
+            color: cs.primary,
           ),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.storefront_rounded),
-            color: const Color(0xFFB4C5FF),
+            color: cs.primary,
             onPressed: () {},
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
           child: Container(
-            color: const Color(0xFF434655).withValues(alpha: 0.3),
+            color: cs.outlineVariant.withValues(alpha: 0.3),
             height: 1.0,
           ),
         ),
@@ -73,17 +74,17 @@ class OutletScreen extends StatelessWidget {
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontFamily: 'Hanken Grotesk',
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFFE1E2ED),
+                    color: cs.onSurface,
                     letterSpacing: -0.02,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Choose your station for this shift',
                   style: TextStyle(
                     fontFamily: 'Hanken Grotesk',
                     fontSize: 16,
-                    color: Color(0xFFC3C6D7),
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -149,9 +150,9 @@ class OutletScreen extends StatelessWidget {
                   isLocked: true,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Outdoor Patio is currently closed for private event.'),
-                        backgroundColor: Color(0xFF1D1F27),
+                      SnackBar(
+                        content: const Text('Outdoor Patio is currently closed for private event.'),
+                        backgroundColor: cs.surfaceContainer,
                       ),
                     );
                   },
@@ -162,7 +163,7 @@ class OutletScreen extends StatelessWidget {
                   title: 'Private Dining Room',
                   subtitle: 'VIP Dining',
                   badgeText: '1 Table Active',
-                  badgeColor: const Color(0xFF2563EB),
+                  badgeColor: cs.primaryContainer,
                   imageUrl:
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuC7QmS1hBkYhJ07eNXcjl_NyvvQ9DGAZBPZkx8dmN-qjYPrtOjEU1x8fy2yT4hr_CrYAEt8IiADkHAUJn9VpgveG_xBqrc0CgETr4FsEltKg8rPj6yJz9q6rGK099poruruQiGlOdQk1RY9msPmT8KxGkw-zcMU8fULHpl_QfW5p5uh9EqOPlxs3teag69yGa1DerY2wJstU1CCf8_JdNOKf9hAwt_dDATSar_2gElXLREWSblH0lh-OxJYaM0MCzhZH63dXWGCwww',
                   isLocked: false,
@@ -195,13 +196,14 @@ class OutletScreen extends StatelessWidget {
     required bool isLocked,
     required VoidCallback onTap,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       clipBehavior: Clip.antiAlias,
-      color: const Color(0xCC1D1F27),
+      color: cs.surfaceContainer.withValues(alpha: 0.8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: const Color(0xFF434655).withValues(alpha: 0.3),
+          color: cs.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: InkWell(
@@ -220,7 +222,7 @@ class OutletScreen extends StatelessWidget {
                     color: Colors.black.withValues(alpha: 0.35),
                     colorBlendMode: BlendMode.darken,
                     errorBuilder: (context, error, stackTrace) =>
-                        Container(color: const Color(0xFF191B23)),
+                        Container(color: cs.surfaceContainerLow),
                   ),
                   // Badge overlay
                   Positioned(
@@ -271,11 +273,11 @@ class OutletScreen extends StatelessWidget {
                         children: [
                           Text(
                             title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Hanken Grotesk',
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFE1E2ED),
+                              color: cs.onSurface,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -291,17 +293,17 @@ class OutletScreen extends StatelessWidget {
                                           margin: const EdgeInsets.only(right: 6),
                                           width: 20,
                                           height: 20,
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFF3A4A5F),
+                                          decoration: BoxDecoration(
+                                            color: cs.secondaryContainer,
                                             shape: BoxShape.circle,
                                           ),
                                           alignment: Alignment.center,
                                           child: Text(
                                             initials,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 9,
                                               fontWeight: FontWeight.w700,
-                                              color: Color(0xFFEEEFFF),
+                                              color: cs.onPrimaryContainer,
                                             ),
                                           ),
                                         ),
@@ -311,10 +313,10 @@ class OutletScreen extends StatelessWidget {
                               ],
                               Text(
                                 subtitle,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Hanken Grotesk',
                                   fontSize: 13,
-                                  color: Color(0xFFC3C6D7),
+                                  color: cs.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -324,7 +326,7 @@ class OutletScreen extends StatelessWidget {
                     ),
                     Icon(
                       isLocked ? Icons.lock_outline_rounded : Icons.arrow_forward_ios_rounded,
-                      color: isLocked ? const Color(0xFFF59E0B) : const Color(0xFFB4C5FF),
+                      color: isLocked ? const Color(0xFFF59E0B) : cs.primary,
                       size: 20,
                     ),
                   ],
@@ -338,19 +340,20 @@ class OutletScreen extends StatelessWidget {
   }
 
   Widget _buildBottomNavBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: Color(0xFF434655),
+            color: cs.outlineVariant,
             width: 0.5,
           ),
         ),
       ),
       child: BottomNavigationBar(
-        backgroundColor: const Color(0xFF191B23),
-        selectedItemColor: const Color(0xFFB4C5FF),
-        unselectedItemColor: const Color(0xFFC3C6D7),
+        backgroundColor: cs.surfaceContainerLow,
+        selectedItemColor: cs.primary,
+        unselectedItemColor: cs.onSurfaceVariant,
         currentIndex: 0,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle: const TextStyle(
@@ -387,21 +390,22 @@ class OutletScreen extends StatelessWidget {
 
   Widget _buildDrawer(
       BuildContext context, User user, POSProvider provider) {
+    final cs = Theme.of(context).colorScheme;
     return Drawer(
-      backgroundColor: const Color(0xFF1D1F27),
+      backgroundColor: cs.surfaceContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Color(0xFF191B23),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
             ),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: const Color(0xFFEEEFFF),
+                  backgroundColor: cs.primaryContainer,
+                  foregroundColor: cs.onPrimaryContainer,
                   child: Text(
                     user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                     style: const TextStyle(
@@ -418,19 +422,19 @@ class OutletScreen extends StatelessWidget {
                     children: [
                       Text(
                         user.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Hanken Grotesk',
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFE1E2ED),
+                          color: cs.onSurface,
                         ),
                       ),
                       Text(
                         user.role.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Hanken Grotesk',
                           fontSize: 14,
-                          color: Color(0xFFC3C6D7),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -440,32 +444,32 @@ class OutletScreen extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.dashboard_rounded, color: Color(0xFFB4C5FF)),
+            leading: Icon(Icons.dashboard_rounded, color: cs.primary),
             title: const Text('Dashboard'),
             onTap: () {},
           ),
           ListTile(
-            leading: const Icon(Icons.calendar_today_rounded, color: Color(0xFFC3C6D7)),
+            leading: Icon(Icons.calendar_today_rounded, color: cs.onSurfaceVariant),
             title: const Text('Staff Schedule'),
             onTap: () {},
           ),
           ListTile(
-            leading: const Icon(Icons.inventory_2_outlined, color: Color(0xFFC3C6D7)),
+            leading: Icon(Icons.inventory_2_outlined, color: cs.onSurfaceVariant),
             title: const Text('Inventory'),
             onTap: () {},
           ),
           ListTile(
-            leading: const Icon(Icons.analytics_outlined, color: Color(0xFFC3C6D7)),
+            leading: Icon(Icons.analytics_outlined, color: cs.onSurfaceVariant),
             title: const Text('Reports'),
             onTap: () {},
           ),
           const Spacer(),
-          const Divider(color: Color(0xFF434655)),
+          Divider(color: cs.outlineVariant),
           ListTile(
-            leading: const Icon(Icons.logout_rounded, color: Color(0xFFFFB4AB)),
-            title: const Text(
+            leading: Icon(Icons.logout_rounded, color: cs.error),
+            title: Text(
               'Logout',
-              style: TextStyle(color: Color(0xFFFFB4AB)),
+              style: TextStyle(color: cs.error),
             ),
             onTap: () {
               provider.clearSession();

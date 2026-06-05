@@ -34,13 +34,17 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Stack(
         children: [
           // Background atmospheric glows and grids
           Positioned.fill(
             child: Container(
-              color: const Color(0xFF11131B),
+              color: scaffoldBg,
             ),
           ),
           // Subtle radial glow at the center
@@ -51,7 +55,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   center: Alignment.center,
                   radius: 1.2,
                   colors: [
-                    const Color(0xFF2563EB).withValues(alpha: 0.15),
+                    cs.primaryContainer.withValues(alpha: isDark ? 0.15 : 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -61,7 +65,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           // Subtle dots pattern placeholder using custom painter
           Positioned.fill(
             child: CustomPaint(
-              painter: _GridPatternPainter(),
+              painter: _GridPatternPainter(
+                gridColor: cs.primaryContainer.withValues(alpha: isDark ? 0.04 : 0.06),
+              ),
             ),
           ),
           // Scrollable layout
@@ -88,28 +94,28 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               width: 100,
                               height: 100,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2563EB),
+                                color: cs.primaryContainer,
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF2563EB)
+                                    color: cs.primaryContainer
                                         .withValues(alpha: 0.4),
                                     blurRadius: 20,
                                     offset: const Offset(0, 8),
                                   )
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.terminal_rounded,
                                 size: 52,
-                                color: Color(0xFFEEEFFF),
+                                color: cs.onPrimaryContainer,
                               ),
                             ),
                             const SizedBox(height: 24),
                             // Title
                             RichText(
                               textAlign: TextAlign.center,
-                              text: const TextSpan(
+                              text: TextSpan(
                                 children: [
                                   TextSpan(
                                     text: 'Command Center ',
@@ -117,7 +123,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                       fontFamily: 'Hanken Grotesk',
                                       fontSize: 32,
                                       fontWeight: FontWeight.w800,
-                                      color: Color(0xFFB4C5FF),
+                                      color: cs.primary,
                                       letterSpacing: -0.02,
                                     ),
                                   ),
@@ -127,7 +133,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                       fontFamily: 'Hanken Grotesk',
                                       fontSize: 32,
                                       fontWeight: FontWeight.w800,
-                                      color: Color(0xFFE1E2ED),
+                                      color: cs.onSurface,
                                       letterSpacing: -0.02,
                                     ),
                                   ),
@@ -136,14 +142,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                             ),
                             const SizedBox(height: 12),
                             // Subtitle
-                            const Text(
+                            Text(
                               'Next-generation restaurant management at your fingertips.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: 'Hanken Grotesk',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFFC3C6D7),
+                                color: cs.onSurfaceVariant,
                                 height: 1.4,
                               ),
                             ),
@@ -158,7 +164,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: const Color(0xFF434655).withValues(alpha: 0.3),
+                              color: cs.outlineVariant.withValues(alpha: 0.3),
                             ),
                           ),
                           child: ClipRRect(
@@ -169,26 +175,27 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 Image.network(
                                   'https://lh3.googleusercontent.com/aida-public/AB6AXuDL0vYSRDnAYX6uBRjjC07Nakv096Ig9W7nuGOW1CojPcrSwSDO4XygGgddXjAVQopTw9xFMTpiFRdwP1efNegl81928ybKtr1oAiNo-JkBat-LnYr9NhpIq9H8sLGKdYauedC2aijnS25ik4OgYbTlyTJSE5ZzkDUdvybmrhNg0brpD6_xIB6wsjbNF0D8V4KUXXPYN-EVsIEWuGQPPqEcVW-8sbR8U5sRCxA7eCEag3yEenMavc1HwKLEGEIYSrJ35XGgIdB-27c',
                                   fit: BoxFit.cover,
-                                  color: Colors.black.withValues(alpha: 0.45),
+                                  color: (isDark ? Colors.black : Colors.white)
+                                      .withValues(alpha: isDark ? 0.45 : 0.15),
                                   colorBlendMode: BlendMode.dstATop,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Container(
-                                    color: const Color(0xFF191B23),
-                                    child: const Icon(
+                                    color: cs.surfaceContainerLow,
+                                    child: Icon(
                                       Icons.restaurant_menu_rounded,
                                       size: 48,
-                                      color: Color(0xFF434655),
+                                      color: cs.outlineVariant,
                                     ),
                                   ),
                                 ),
                                 Container(
-                                  decoration: const BoxDecoration(
+                                  decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
                                       colors: [
                                         Colors.transparent,
-                                        Color(0xFF11131B),
+                                        scaffoldBg,
                                       ],
                                     ),
                                   ),
@@ -223,13 +230,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
-                                  foregroundColor: const Color(0xFFEEEFFF),
+                                  backgroundColor: cs.primaryContainer,
+                                  foregroundColor: cs.onPrimaryContainer,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   elevation: 8,
-                                  shadowColor: const Color(0xFF2563EB)
+                                  shadowColor: cs.primaryContainer
                                       .withValues(alpha: 0.3),
                                 ),
                               ),
@@ -242,10 +249,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1D1F27),
+                                color: cs.surfaceContainer,
                                 borderRadius: BorderRadius.circular(9999),
                                 border: Border.all(
-                                  color: const Color(0xFF434655)
+                                  color: cs.outlineVariant
                                       .withValues(alpha: 0.2),
                                 ),
                               ),
@@ -269,13 +276,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                     },
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text(
+                                  Text(
                                     'SYSTEM STATUS: ONLINE',
                                     style: TextStyle(
                                       fontFamily: 'JetBrains Mono',
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFFC3C6D7),
+                                      color: cs.onSurfaceVariant,
                                       letterSpacing: 0.05,
                                     ),
                                   ),
@@ -299,10 +306,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 }
 
 class _GridPatternPainter extends CustomPainter {
+  _GridPatternPainter({required this.gridColor});
+  final Color gridColor;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF2563EB).withValues(alpha: 0.04)
+      ..color = gridColor
       ..strokeWidth = 1.0;
 
     const spacing = 32.0;
@@ -317,5 +327,6 @@ class _GridPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GridPatternPainter oldDelegate) =>
+      oldDelegate.gridColor != gridColor;
 }

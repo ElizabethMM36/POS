@@ -77,6 +77,208 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
     }
   }
 
+  void _showDiscountDialog(BuildContext context, Check check) {
+    final provider = context.read<POSProvider>();
+    final customAmountController = TextEditingController();
+    DiscountType? selectedType;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1D1F27),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                24,
+                24,
+                24,
+                MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Apply Discount',
+                    style: TextStyle(
+                      fontFamily: 'Hanken Grotesk',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFE1E2ED),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Discount type options
+                  ...DiscountType.values.map((type) {
+                    final isSelected = selectedType == type;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () => setSheetState(() => selectedType = type),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(
+                                    0xFF2563EB,
+                                  ).withValues(alpha: 0.15)
+                                : const Color(0xFF191B23),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF2563EB)
+                                  : const Color(0xFF434655),
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF2563EB)
+                                        : const Color(0xFF434655),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 14,
+                                        color: Color(0xFF2563EB),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                type.displayName,
+                                style: const TextStyle(
+                                  fontFamily: 'Hanken Grotesk',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFE1E2ED),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 20),
+                  // Amount input
+                  if (selectedType != null) ...[
+                    const Text(
+                      'Discount Amount',
+                      style: TextStyle(
+                        fontFamily: 'Hanken Grotesk',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFC3C6D7),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: customAmountController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                      ],
+                      style: const TextStyle(
+                        fontFamily: 'JetBrains Mono',
+                        fontSize: 14,
+                        color: Color(0xFFE1E2ED),
+                      ),
+                      decoration: InputDecoration(
+                        prefixText: '\$ ',
+                        prefixStyle: const TextStyle(
+                          fontFamily: 'JetBrains Mono',
+                          fontSize: 14,
+                          color: Color(0xFFC3C6D7),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF434655),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF434655),
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF191B23),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: () {
+                        final amount =
+                            double.tryParse(customAmountController.text) ?? 0;
+                        if (amount > 0 && selectedType != null) {
+                          provider.applyDiscount(
+                            widget.checkId,
+                            amount: amount,
+                            type: selectedType!,
+                          );
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${selectedType!.displayName} discount of \$${amount.toStringAsFixed(2)} applied',
+                              ),
+                              backgroundColor: const Color(0xFF22C55E),
+                            ),
+                          );
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Apply Discount',
+                        style: TextStyle(
+                          fontFamily: 'Hanken Grotesk',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showVoidDialog(BuildContext context) {
     final reasonController = TextEditingController();
 
@@ -853,28 +1055,19 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 ),
                 const SizedBox(height: 24),
 
-                // Action buttons row
+                // Discount, Remove Discount, and Print Check buttons row
                 Row(
                   children: [
-                    // Add More Items
+                    // Discount
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute<void>(
-                              builder: (_) => OrderEntryScreen(
-                                tableNumber: check.tableNumber,
-                                checkId: widget.checkId,
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Add More'),
+                        onPressed: () => _showDiscountDialog(context, check),
+                        icon: const Icon(Icons.local_offer_rounded, size: 18),
+                        label: const Text('Discount'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
-                          side: const BorderSide(color: Color(0xFF2563EB)),
-                          foregroundColor: const Color(0xFFB4C5FF),
+                          side: const BorderSide(color: Color(0xFF8B5CF6)),
+                          foregroundColor: const Color(0xFF8B5CF6),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -882,15 +1075,90 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       ),
                     ),
                     const SizedBox(width: 12),
+                    // Remove Discount
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: check.discount > 0
+                            ? () {
+                                context.read<POSProvider>().removeDiscount(
+                                  widget.checkId,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Discount removed'),
+                                    backgroundColor: Color(0xFFF59E0B),
+                                  ),
+                                );
+                              }
+                            : null,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        label: const Text('Remove'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          side: BorderSide(
+                            color: check.discount > 0
+                                ? const Color(0xFFEF4444)
+                                : const Color(0xFF434655),
+                          ),
+                          foregroundColor: check.discount > 0
+                              ? const Color(0xFFEF4444)
+                              : const Color(0xFF434655),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Print Check
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          provider.updateTableStatus(
+                            check.tableNumber,
+                            status: TableStatus.readyForBill,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Check printed and sent to table'),
+                              backgroundColor: Color(0xFF22C55E),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.print_rounded, size: 18),
+                        label: const Text('Print'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          side: const BorderSide(color: Color(0xFF22C55E)),
+                          foregroundColor: const Color(0xFF22C55E),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Action buttons row
+                Row(
+                  children: [
+                    // Add More Items
+                    const SizedBox(width: 12),
                     // Save Check
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
                           provider.saveCheck(widget.checkId);
+                          provider.updateTableStatus(
+                            check.tableNumber,
+                            status: TableStatus.readyForBill,
+                          );
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Check saved for later recall'),
+                              content: Text('Check saved and ready for bill'),
                               backgroundColor: Color(0xFFF59E0B),
                             ),
                           );

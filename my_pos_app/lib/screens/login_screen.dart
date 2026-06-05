@@ -90,6 +90,9 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     final mediaWidth = MediaQuery.of(context).size.width;
     final isDesktop = mediaWidth > 768;
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: Stack(
@@ -109,17 +112,17 @@ class _LoginScreenState extends State<LoginScreen>
                         color: Colors.black.withValues(alpha: 0.5),
                         colorBlendMode: BlendMode.darken,
                         errorBuilder: (context, error, stackTrace) =>
-                            Container(color: const Color(0xFF0C0E16)),
+                            Container(color: cs.surfaceContainerLowest),
                       ),
                       // Left Gradient Overlay
                       Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                             colors: [
                               Colors.transparent,
-                              Color(0xFF11131B),
+                              scaffoldBg,
                             ],
                           ),
                         ),
@@ -133,10 +136,10 @@ class _LoginScreenState extends State<LoginScreen>
                           children: [
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.storefront_rounded,
                                   size: 52,
-                                  color: Color(0xFFB4C5FF),
+                                  color: cs.primary,
                                 ),
                                 const SizedBox(width: 16),
                                 Text(
@@ -145,30 +148,30 @@ class _LoginScreenState extends State<LoginScreen>
                                     fontFamily: 'Hanken Grotesk',
                                     fontSize: 32,
                                     fontWeight: FontWeight.w800,
-                                    color: const Color(0xFFB4C5FF),
+                                    color: cs.primary,
                                     letterSpacing: -0.02,
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 16),
-                            const Text(
+                            Text(
                               'Terminal #04',
                               style: TextStyle(
                                 fontFamily: 'Hanken Grotesk',
                                 fontSize: 24,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFFE1E2ED),
+                                color: cs.onSurface,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Ready for service. Please enter your employee PIN to begin your shift.',
                               style: TextStyle(
                                 fontFamily: 'Hanken Grotesk',
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFFC3C6D7),
+                                color: cs.onSurfaceVariant,
                                 height: 1.4,
                               ),
                             ),
@@ -200,16 +203,16 @@ class _LoginScreenState extends State<LoginScreen>
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Icon(Icons.sync_rounded,
-                                    size: 14, color: Color(0xFFC3C6D7)),
+                                Icon(Icons.sync_rounded,
+                                    size: 14, color: cs.onSurfaceVariant),
                                 const SizedBox(width: 6),
-                                const Text(
+                                Text(
                                   'SYNCED: 2 MINS AGO',
                                   style: TextStyle(
                                     fontFamily: 'JetBrains Mono',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFC3C6D7),
+                                    color: cs.onSurfaceVariant,
                                     letterSpacing: 0.05,
                                   ),
                                 ),
@@ -224,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen>
               // Right Side: Numeric keypad section
               Expanded(
                 child: Container(
-                  color: const Color(0xFF11131B),
+                  color: scaffoldBg,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: SafeArea(
                     child: Center(
@@ -238,19 +241,19 @@ class _LoginScreenState extends State<LoginScreen>
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.storefront_rounded,
                                     size: 32,
-                                    color: Color(0xFFB4C5FF),
+                                    color: cs.primary,
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text(
+                                  Text(
                                     'Main Dining',
                                     style: TextStyle(
                                       fontFamily: 'Hanken Grotesk',
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFFB4C5FF),
+                                      color: cs.primary,
                                     ),
                                   ),
                                 ],
@@ -264,37 +267,37 @@ class _LoginScreenState extends State<LoginScreen>
                                   width: 80,
                                   height: 80,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1D1F27),
+                                    color: cs.surfaceContainer,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: const Color(0xFF434655),
+                                      color: cs.outlineVariant,
                                       width: 2,
                                     ),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.person_outline_rounded,
                                     size: 40,
-                                    color: Color(0xFFC3C6D7),
+                                    color: cs.onSurfaceVariant,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
+                                Text(
                                   'Staff Login',
                                   style: TextStyle(
                                     fontFamily: 'Hanken Grotesk',
                                     fontSize: 20,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFE1E2ED),
+                                    color: cs.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   'ENTER 4-DIGIT PIN',
                                   style: TextStyle(
                                     fontFamily: 'JetBrains Mono',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFFC3C6D7),
+                                    color: cs.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -313,18 +316,18 @@ class _LoginScreenState extends State<LoginScreen>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: active
-                                        ? const Color(0xFFB4C5FF)
+                                        ? cs.primary
                                         : Colors.transparent,
                                     border: Border.all(
                                       color: active
-                                          ? const Color(0xFFB4C5FF)
-                                          : const Color(0xFF434655),
+                                          ? cs.primary
+                                          : cs.outlineVariant,
                                       width: 2,
                                     ),
                                     boxShadow: active
                                         ? [
                                             BoxShadow(
-                                              color: const Color(0xFFB4C5FF)
+                                              color: cs.primary
                                                   .withValues(alpha: 0.5),
                                               blurRadius: 8,
                                             )
@@ -369,13 +372,13 @@ class _LoginScreenState extends State<LoginScreen>
                             // Forgot PIN Link
                             TextButton(
                               onPressed: () {},
-                              child: const Text(
+                              child: Text(
                                 'Forgot PIN?',
                                 style: TextStyle(
                                   fontFamily: 'JetBrains Mono',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFFC3C6D7),
+                                  color: cs.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -384,7 +387,7 @@ class _LoginScreenState extends State<LoginScreen>
                               width: 96,
                               height: 4,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF32343D),
+                                color: cs.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(9999),
                               ),
                             ),
@@ -405,7 +408,10 @@ class _LoginScreenState extends State<LoginScreen>
                 duration: const Duration(milliseconds: 300),
                 opacity: _isAuthenticating ? 1.0 : 0.0,
                 child: Container(
-                  color: const Color(0xFF0C0E16).withValues(alpha: 0.95),
+                  color: (isDark
+                          ? const Color(0xFF0C0E16)
+                          : const Color(0xFF191B23))
+                      .withValues(alpha: 0.95),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -445,6 +451,7 @@ class _LoginScreenState extends State<LoginScreen>
                           fontFamily: 'Hanken Grotesk',
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
+                          // Always light text on the dark overlay
                           color: Color(0xFFE1E2ED),
                           letterSpacing: -0.02,
                         ),
@@ -456,6 +463,7 @@ class _LoginScreenState extends State<LoginScreen>
                           fontFamily: 'Hanken Grotesk',
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
+                          // Always light text on the dark overlay
                           color: Color(0xFFC3C6D7),
                         ),
                       ),
@@ -473,8 +481,9 @@ class _LoginScreenState extends State<LoginScreen>
     required String text,
     required VoidCallback onTap,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Material(
-      color: const Color(0xFF282A32),
+      color: cs.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -483,17 +492,17 @@ class _LoginScreenState extends State<LoginScreen>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF434655).withValues(alpha: 0.3),
+              color: cs.outlineVariant.withValues(alpha: 0.3),
             ),
           ),
           alignment: Alignment.center,
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Hanken Grotesk',
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: Color(0xFFE1E2ED),
+              color: cs.onSurface,
             ),
           ),
         ),
@@ -505,8 +514,9 @@ class _LoginScreenState extends State<LoginScreen>
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Material(
-      color: const Color(0xFF191B23),
+      color: cs.surfaceContainerLow,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -516,7 +526,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: Icon(
             icon,
             size: 28,
-            color: const Color(0xFFC3C6D7),
+            color: cs.onSurfaceVariant,
           ),
         ),
       ),
@@ -524,8 +534,9 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildBiometricButton() {
+    final cs = Theme.of(context).colorScheme;
     return Material(
-      color: const Color(0xFF191B23),
+      color: cs.surfaceContainerLow,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: _handleBiometric,
@@ -537,7 +548,7 @@ class _LoginScreenState extends State<LoginScreen>
             size: 32,
             color: _biometricScanning
                 ? const Color(0xFF22C55E)
-                : const Color(0xFFB4C5FF),
+                : cs.primary,
           ),
         ),
       ),

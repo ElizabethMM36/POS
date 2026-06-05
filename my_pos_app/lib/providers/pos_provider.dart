@@ -1,17 +1,18 @@
 import 'package:flutter/foundation.dart';
-
 import 'package:my_pos_app/models/pos_models.dart';
 
 /// Central application state for authentication, outlet selection, tables,
 /// menu, checks, and staff management.
 class POSProvider extends ChangeNotifier {
-  User? _currentUser;
-  Outlet? _selectedOutlet;
-  int _currentNavIndex = 0;
+  final List<Check> _checks = [];
 
   User? get currentUser => _currentUser;
   Outlet? get selectedOutlet => _selectedOutlet;
   int get currentNavIndex => _currentNavIndex;
+
+  User? _currentUser;
+  Outlet? _selectedOutlet;
+  int _currentNavIndex = 0;
 
   void setNavIndex(int index) {
     _currentNavIndex = index;
@@ -60,7 +61,7 @@ class POSProvider extends ChangeNotifier {
     'Sparkling Water',
   ];
 
-  static final List<MenuItem> fullMenu = [
+  final List<MenuItem> fullMenu = [
     // Appetizers
     const MenuItem(
       id: 'a1',
@@ -220,88 +221,51 @@ class POSProvider extends ChangeNotifier {
     RestaurantTable(number: 1, status: TableStatus.available),
     RestaurantTable(number: 2, status: TableStatus.available),
     RestaurantTable(number: 3, status: TableStatus.available),
-    RestaurantTable(
-      number: 4,
-      status: TableStatus.billing,
-      covers: 2,
-      duration: '42m',
-      billAmount: 84.50,
-      orders: [
-        OrderItem(
-          name: 'Wagyu Beef Burger',
-          quantity: 2,
-          courseNumber: 2,
-          price: 32.00,
-          status: OrderItemStatus.served,
-        ),
-        OrderItem(
-          name: 'Espresso Martini',
-          quantity: 2,
-          courseNumber: 3,
-          price: 18.00,
-          status: OrderItemStatus.served,
-        ),
-      ],
-    ),
-    RestaurantTable(
-      number: 5,
-      status: TableStatus.occupied,
-      covers: 8,
-      duration: '15m',
-      billAmount: 45.00,
-      orders: [
-        OrderItem(
-          name: 'Margherita Pizza',
-          quantity: 2,
-          courseNumber: 1,
-          price: 20.00,
-          status: OrderItemStatus.preparing,
-        ),
-      ],
-    ),
+    RestaurantTable(number: 4, status: TableStatus.available),
+    RestaurantTable(number: 5, status: TableStatus.available),
     RestaurantTable(number: 6, status: TableStatus.available),
-    RestaurantTable(
-      number: 7,
-      status: TableStatus.billing,
-      covers: 4,
-      duration: '1h 12m',
-      billAmount: 126.00,
-      orders: [
-        OrderItem(
-          name: 'Grilled Atlantic Salmon',
-          quantity: 3,
-          courseNumber: 2,
-          price: 38.00,
-          status: OrderItemStatus.served,
-        ),
-      ],
-    ),
+    RestaurantTable(number: 7, status: TableStatus.available),
     RestaurantTable(number: 8, status: TableStatus.available),
     RestaurantTable(number: 9, status: TableStatus.available),
     RestaurantTable(number: 10, status: TableStatus.available),
     RestaurantTable(number: 11, status: TableStatus.available),
-    RestaurantTable(
-      number: 12,
-      status: TableStatus.reserved,
-      covers: 6,
-      reservationTime: 'At 19:30',
-    ),
+    RestaurantTable(number: 12, status: TableStatus.available),
     RestaurantTable(number: 13, status: TableStatus.available),
     RestaurantTable(number: 14, status: TableStatus.available),
-    RestaurantTable(
-      number: 15,
-      status: TableStatus.reserved,
-      covers: 2,
-      reservationTime: 'At 20:00',
-    ),
+    RestaurantTable(number: 15, status: TableStatus.available),
     RestaurantTable(number: 16, status: TableStatus.available),
   ];
 
-  List<RestaurantTable> get tables => List.unmodifiable(_tables);
+  // FIX HERE: Dynamically compute live prices and order logs from active checks
+  List<RestaurantTable> get tables {
+    return List.unmodifiable(
+      _tables.map((table) {
+        Check? activeCheck;
+        if (table.activeCheckId != null) {
+          activeCheck = getCheckById(table.activeCheckId!);
+        } else {
+          try {
+            activeCheck = _checks.firstWhere(
+              (c) =>
+                  c.tableNumber == table.number && c.status == CheckStatus.open,
+            );
+          } catch (_) {
+            activeCheck = null;
+          }
+        }
+
+        if (activeCheck != null) {
+          return table.copyWith(
+            billAmount: activeCheck.total,
+            orders: activeCheck.items,
+          );
+        }
+        return table;
+      }),
+    );
+  }
 
   // ── Checks ──────────────────────────────────────────────────────
-
-  final List<Check> _checks = [];
 
   List<Check> get checks => List.unmodifiable(_checks);
 
@@ -357,13 +321,14 @@ class POSProvider extends ChangeNotifier {
     if (check == null) return;
 
     check.items.add(item);
-    check.subtotal = check.items.fold(0, (sum, i) => sum + i.total);
+    // FIX HERE: Using double literal 0.0 instead of int 0 to avoid type casting exception
+    check.subtotal = check.items.fold(0.0, (sum, i) => sum + i.total);
     check.tax = check.subtotal * 0.085; // 8.5% tax
 
     // Update table bill amount
     final tableIdx = _tables.indexWhere((t) => t.number == check.tableNumber);
     if (tableIdx != -1) {
-      _tables[tableIdx].billAmount = check.subtotal;
+      _tables[tableIdx].billAmount = check.total;
       _tables[tableIdx].orders.add(item);
     }
     notifyListeners();
@@ -374,8 +339,15 @@ class POSProvider extends ChangeNotifier {
     if (check == null) return;
 
     check.items.removeWhere((i) => i.id == itemId);
-    check.subtotal = check.items.fold(0, (sum, i) => sum + i.total);
+    // FIX HERE: Using double literal 0.0 instead of int 0
+    check.subtotal = check.items.fold(0.0, (sum, i) => sum + i.total);
     check.tax = check.subtotal * 0.085;
+
+    final tableIdx = _tables.indexWhere((t) => t.number == check.tableNumber);
+    if (tableIdx != -1) {
+      _tables[tableIdx].billAmount = check.total;
+      _tables[tableIdx].orders.removeWhere((i) => i.id == itemId);
+    }
     notifyListeners();
   }
 
@@ -456,6 +428,46 @@ class POSProvider extends ChangeNotifier {
       _tables[tableIdx].activeCheckId = null;
     }
     notifyListeners();
+  }
+
+  void applyDiscount(
+    String checkId, {
+    required double amount,
+    required DiscountType type,
+  }) {
+    final check = getCheckById(checkId);
+    if (check == null) return;
+
+    check.discount = amount;
+    check.discountType = type;
+
+    final tableIdx = _tables.indexWhere((t) => t.number == check.tableNumber);
+    if (tableIdx != -1) {
+      _tables[tableIdx].billAmount = check.total;
+    }
+    notifyListeners();
+  }
+
+  void removeDiscount(String checkId) {
+    final check = getCheckById(checkId);
+    if (check == null) return;
+
+    check.discount = 0.0;
+    check.discountType = null;
+
+    final tableIdx = _tables.indexWhere((t) => t.number == check.tableNumber);
+    if (tableIdx != -1) {
+      _tables[tableIdx].billAmount = check.total;
+    }
+    notifyListeners();
+  }
+
+  void updateTableStatus(int tableNumber, {required TableStatus status}) {
+    final tableIdx = _tables.indexWhere((t) => t.number == tableNumber);
+    if (tableIdx != -1) {
+      _tables[tableIdx].status = status;
+      notifyListeners();
+    }
   }
 
   // ── Staff Management (RBAC) ─────────────────────────────────────
@@ -630,7 +642,6 @@ class POSProvider extends ChangeNotifier {
 
   bool get isAuthenticated => _currentUser != null;
 
-  /// Validates staff credentials and establishes the session.
   bool authenticateUser({
     required String staffIdOrName,
     required UserRole role,
@@ -645,7 +656,6 @@ class POSProvider extends ChangeNotifier {
     return true;
   }
 
-  /// Persists the active service area for this session.
   void selectOutlet(Outlet outlet) {
     _selectedOutlet = outlet;
     notifyListeners();
@@ -686,13 +696,18 @@ class POSProvider extends ChangeNotifier {
         table.orders.addAll(orders);
       }
     }
+
+    // ── FIX: Automatically recalculate billAmount whenever orders change ──
+    table.billAmount = table.orders.fold(0.0, (sum, item) => sum + item.total);
+
     notifyListeners();
   }
 
+  // FIX HERE: Fully populated tables with real totals and status states on application spin-up
   void _initializeMockChecks() {
     if (_checks.isNotEmpty) return;
 
-    // Create mock checks for occupied/billing tables
+    // Table 4 Mock State
     final check4 = Check(
       id: 'CHK-1001',
       tableNumber: 4,
@@ -720,8 +735,16 @@ class POSProvider extends ChangeNotifier {
       tax: 8.50,
     );
     _checks.add(check4);
-    _tables[3].activeCheckId = 'CHK-1001';
+    _tables[3] = _tables[3].copyWith(
+      status: TableStatus.occupied,
+      covers: 2,
+      duration: '42m',
+      activeCheckId: 'CHK-1001',
+      billAmount: check4.total,
+      orders: check4.items,
+    );
 
+    // Table 5 Mock State
     final check5 = Check(
       id: 'CHK-1002',
       tableNumber: 5,
@@ -742,8 +765,16 @@ class POSProvider extends ChangeNotifier {
       tax: 3.40,
     );
     _checks.add(check5);
-    _tables[4].activeCheckId = 'CHK-1002';
+    _tables[4] = _tables[4].copyWith(
+      status: TableStatus.occupied,
+      covers: 8,
+      duration: '15m',
+      activeCheckId: 'CHK-1002',
+      billAmount: check5.total,
+      orders: check5.items,
+    );
 
+    // Table 7 Mock State
     final check7 = Check(
       id: 'CHK-1003',
       tableNumber: 7,
@@ -764,59 +795,67 @@ class POSProvider extends ChangeNotifier {
       tax: 9.69,
     );
     _checks.add(check7);
-    _tables[6].activeCheckId = 'CHK-1003';
+    _tables[6] = _tables[6].copyWith(
+      status: TableStatus.occupied,
+      covers: 4,
+      duration: '1h 12m',
+      activeCheckId: 'CHK-1003',
+      billAmount: check7.total,
+      orders: check7.items,
+    );
 
-    // Add some saved checks
-    final savedCheck1 = Check(
-      id: 'CHK-0998',
-      tableNumber: 3,
-      serverName: 'Emily Davis',
-      openedAt: DateTime.now().subtract(const Duration(hours: 2)),
-      status: CheckStatus.saved,
-      covers: 2,
+    // Table 12 Mock State (Ready For Bill)
+    final check12 = Check(
+      id: 'CHK-1004',
+      tableNumber: 12,
+      serverName: _currentUser?.name ?? 'Staff',
+      openedAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 45)),
+      status: CheckStatus.open,
+      covers: 6,
       items: [
         OrderItem(
-          name: 'Caesar Salad',
-          quantity: 2,
-          courseNumber: 1,
-          price: 14.00,
-          status: OrderItemStatus.served,
-        ),
-        OrderItem(
           name: 'Truffle Mushroom Risotto',
-          quantity: 1,
+          quantity: 4,
           courseNumber: 2,
           price: 28.00,
           status: OrderItemStatus.served,
         ),
-      ],
-      subtotal: 56.00,
-      tax: 4.76,
-    );
-    _checks.add(savedCheck1);
-
-    // Add some closed checks
-    final closedCheck1 = Check(
-      id: 'CHK-0995',
-      tableNumber: 9,
-      serverName: 'James Wilson',
-      openedAt: DateTime.now().subtract(const Duration(hours: 3, minutes: 30)),
-      closedAt: DateTime.now().subtract(const Duration(hours: 2, minutes: 15)),
-      status: CheckStatus.closed,
-      covers: 4,
-      items: [
         OrderItem(
-          name: 'Lobster Bisque',
-          quantity: 2,
+          name: 'House Red Wine (Glass)',
+          quantity: 6,
           courseNumber: 1,
-          price: 18.00,
+          price: 14.00,
           status: OrderItemStatus.served,
         ),
+      ],
+      subtotal: 196.00,
+      tax: 16.66,
+    );
+    _checks.add(check12);
+    _tables[11] = _tables[11].copyWith(
+      status: TableStatus.readyForBill,
+      covers: 6,
+      duration: '1h 45m',
+      activeCheckId: 'CHK-1004',
+      billAmount: check12.total,
+      orders: check12.items,
+      reservationTime: 'At 19:30',
+    );
+
+    // Table 15 Mock State (Ready For Bill)
+    final check15 = Check(
+      id: 'CHK-1005',
+      tableNumber: 15,
+      serverName: _currentUser?.name ?? 'Staff',
+      openedAt: DateTime.now().subtract(const Duration(minutes: 55)),
+      status: CheckStatus.open,
+      covers: 2,
+      items: [
         OrderItem(
-          name: 'Wagyu Beef Burger',
+          name: 'Tuna Tartare',
           quantity: 2,
-          courseNumber: 2,
-          price: 32.00,
+          courseNumber: 1,
+          price: 22.00,
           status: OrderItemStatus.served,
         ),
         OrderItem(
@@ -827,132 +866,108 @@ class POSProvider extends ChangeNotifier {
           status: OrderItemStatus.served,
         ),
       ],
-      subtotal: 132.00,
-      tax: 11.22,
-      tip: 19.80,
-      paymentMethod: 'Visa •••• 4242',
+      subtotal: 76.00,
+      tax: 6.46,
     );
-    _checks.add(closedCheck1);
-
-    final closedCheck2 = Check(
-      id: 'CHK-0992',
-      tableNumber: 11,
-      serverName: 'Mike Chen',
-      openedAt: DateTime.now().subtract(const Duration(hours: 4)),
-      closedAt: DateTime.now().subtract(const Duration(hours: 3)),
-      status: CheckStatus.closed,
-      covers: 6,
-      items: [
-        OrderItem(
-          name: 'Tuna Tartare',
-          quantity: 3,
-          courseNumber: 1,
-          price: 22.00,
-          status: OrderItemStatus.served,
-        ),
-        OrderItem(
-          name: 'Grilled Atlantic Salmon',
-          quantity: 4,
-          courseNumber: 2,
-          price: 38.00,
-          status: OrderItemStatus.served,
-        ),
-        OrderItem(
-          name: 'House Red Wine (Glass)',
-          quantity: 6,
-          courseNumber: 2,
-          price: 14.00,
-          status: OrderItemStatus.served,
-        ),
-      ],
-      subtotal: 302.00,
-      tax: 25.67,
-      tip: 54.36,
-      paymentMethod: 'Amex •••• 1001',
+    _checks.add(check15);
+    _tables[14] = _tables[14].copyWith(
+      status: TableStatus.readyForBill,
+      covers: 2,
+      duration: '55m',
+      activeCheckId: 'CHK-1005',
+      billAmount: check15.total,
+      orders: check15.items,
+      reservationTime: 'At 20:00',
     );
-    _checks.add(closedCheck2);
   }
 
-  /// Clears session state and resets all tables to defaults.
   void clearSession() {
     _currentUser = null;
     _selectedOutlet = null;
     _currentNavIndex = 0;
     _checks.clear();
-    _tables[0] = RestaurantTable(number: 1, status: TableStatus.available);
-    _tables[1] = RestaurantTable(number: 2, status: TableStatus.available);
-    _tables[2] = RestaurantTable(number: 3, status: TableStatus.available);
-    _tables[3] = RestaurantTable(
-      number: 4,
-      status: TableStatus.billing,
-      covers: 2,
-      duration: '42m',
-      billAmount: 84.50,
-      orders: [
-        OrderItem(
-          name: 'Wagyu Beef Burger',
-          quantity: 2,
-          courseNumber: 2,
-          price: 32.00,
-        ),
-        OrderItem(
-          name: 'Espresso Martini',
-          quantity: 2,
-          courseNumber: 3,
-          price: 18.00,
-        ),
-      ],
-    );
-    _tables[4] = RestaurantTable(
-      number: 5,
-      status: TableStatus.occupied,
-      covers: 8,
-      duration: '15m',
-      billAmount: 45.00,
-      orders: [
-        OrderItem(
-          name: 'Margherita Pizza',
-          quantity: 2,
-          courseNumber: 1,
-          price: 20.00,
-        ),
-      ],
-    );
-    _tables[5] = RestaurantTable(number: 6, status: TableStatus.available);
-    _tables[6] = RestaurantTable(
-      number: 7,
-      status: TableStatus.billing,
-      covers: 4,
-      duration: '1h 12m',
-      billAmount: 126.00,
-      orders: [
-        OrderItem(
-          name: 'Grilled Atlantic Salmon',
-          quantity: 3,
-          courseNumber: 2,
-          price: 38.00,
-        ),
-      ],
-    );
-    _tables[7] = RestaurantTable(number: 8, status: TableStatus.available);
-    _tables[8] = RestaurantTable(number: 9, status: TableStatus.available);
-    _tables[9] = RestaurantTable(number: 10, status: TableStatus.available);
-    _tables[10] = RestaurantTable(number: 11, status: TableStatus.available);
-    _tables[11] = RestaurantTable(
-      number: 12,
-      status: TableStatus.reserved,
-      covers: 6,
-      reservationTime: 'At 19:30',
-    );
-    _tables[12] = RestaurantTable(number: 13, status: TableStatus.available);
-    _tables[13] = RestaurantTable(number: 14, status: TableStatus.available);
-    _tables[14] = RestaurantTable(
-      number: 15,
-      status: TableStatus.reserved,
-      covers: 2,
-      reservationTime: 'At 20:00',
-    );
-    _tables[15] = RestaurantTable(number: 16, status: TableStatus.available);
+    for (int i = 0; i < _tables.length; i++) {
+      _tables[i] = RestaurantTable(
+        number: i + 1,
+        status: TableStatus.available,
+      );
+    }
+    notifyListeners();
+  }
+  // ── Centralized Order Dispatch Optimization ──────────────────────
+
+  /// Atomically processes a staged list of order items for a given table,
+  /// routing the ticket automatically into an active check session or initializing a fresh one./// Changes the status of an active item (e.g. tracking when food is served)
+  void updateOrderItemStatus(
+    String checkId,
+    String itemId,
+    OrderItemStatus newStatus,
+  ) {
+    final check = getCheckById(checkId);
+    if (check != null) {
+      final itemIdx = check.items.indexWhere((i) => i.id == itemId);
+      if (itemIdx >= 0) {
+        check.items[itemIdx].status = newStatus;
+        notifyListeners();
+      }
+    }
+  }
+
+  void dispatchOrderTicket({
+    required int tableNumber,
+    required int covers,
+    required List<OrderItem> items,
+  }) {
+    if (items.isEmpty) return;
+
+    String? checkId;
+    final table = getTableByNumber(tableNumber);
+
+    if (table?.activeCheckId != null) {
+      checkId = table!.activeCheckId;
+    } else {
+      final existingCheck = getCheckForTable(tableNumber);
+      checkId = existingCheck?.id;
+    }
+
+    if (checkId == null) {
+      checkId = createCheck(tableNumber: tableNumber, covers: covers);
+    } else {
+      updateTableMetadata(
+        tableNumber,
+        status: TableStatus.occupied,
+        covers: covers,
+      );
+    }
+
+    final check = getCheckById(checkId);
+    if (check != null) {
+      for (var draftItem in items) {
+        // Evaluate tags explicitly so tailored requests do not mistakenly flatten together
+        final existingIdx = check.items.indexWhere(
+          (i) =>
+              i.name == draftItem.name &&
+              i.courseNumber == draftItem.courseNumber &&
+              i.seatNumber == draftItem.seatNumber &&
+              listEquals(i.tags, draftItem.tags) &&
+              i.status == draftItem.status,
+        );
+
+        if (existingIdx >= 0) {
+          check.items[existingIdx].quantity += draftItem.quantity;
+        } else {
+          check.items.add(draftItem.copyWith());
+        }
+      }
+
+      check.subtotal = check.items.fold(0.0, (sum, i) => sum + i.total);
+      check.tax = check.subtotal * 0.085;
+
+      final tIdx = _tables.indexWhere((t) => t.number == tableNumber);
+      if (tIdx >= 0) {
+        _tables[tIdx].billAmount = check.subtotal + check.tax;
+      }
+    }
     notifyListeners();
   }
 }
