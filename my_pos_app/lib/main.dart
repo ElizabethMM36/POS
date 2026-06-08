@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
 import 'package:my_pos_app/providers/theme_provider.dart';
 import 'package:my_pos_app/theme/app_theme.dart';
 import 'package:my_pos_app/screens/welcome_screen.dart';
 
 void main() {
+  if (Platform.isWindows || Platform.isLinux) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
   runApp(const MyPosApp());
 }
 

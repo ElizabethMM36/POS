@@ -27,9 +27,9 @@ class DarkColors {
   // ── Primary ──
   static const Color primary = Color(0xFFB4C5FF);
   static const Color onPrimary = Color(0xFF002A78);
-  static const Color primaryContainer = Color(0xFF2563EB);
+  static const Color primaryContainer = Color.fromARGB(255, 110, 141, 208);
   static const Color onPrimaryContainer = Color(0xFFEEEFFF);
-  static const Color inversePrimary = Color(0xFF004AC6);
+  static const Color inversePrimary = Color.fromARGB(255, 137, 161, 203);
 
   // ── Secondary ──
   static const Color secondary = Color(0xFFB7C8E1);

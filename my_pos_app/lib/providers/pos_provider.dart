@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:my_pos_app/models/pos_models.dart';
+import 'package:my_pos_app/services/database_service.dart';
+import 'package:sqflite/sqflite.dart';
 
 /// Central application state for authentication, outlet selection, tables,
 /// menu, checks, and staff management.
@@ -9,7 +11,8 @@ class POSProvider extends ChangeNotifier {
   User? get currentUser => _currentUser;
   Outlet? get selectedOutlet => _selectedOutlet;
   int get currentNavIndex => _currentNavIndex;
-
+  int? _selectedTableNumber;
+  int? get selectedTableNumber => _selectedTableNumber;
   User? _currentUser;
   Outlet? _selectedOutlet;
   int _currentNavIndex = 0;
@@ -470,6 +473,10 @@ class POSProvider extends ChangeNotifier {
     }
   }
 
+  void selectTable(int? tableNumber) {
+    _selectedTableNumber = tableNumber;
+    notifyListeners(); // Broadcasts change to both grid and management views
+  }
   // ── Staff Management (RBAC) ─────────────────────────────────────
 
   final List<StaffMember> _staff = [
@@ -881,6 +888,14 @@ class POSProvider extends ChangeNotifier {
     );
   }
 
+  void updateItemStatus(String checkId, int itemIndex, OrderItemStatus status) {
+    final check = getCheckById(checkId);
+    if (check != null && itemIndex < check.items.length) {
+      check.items[itemIndex].status = status;
+      notifyListeners();
+    }
+  }
+
   void clearSession() {
     _currentUser = null;
     _selectedOutlet = null;
@@ -898,16 +913,32 @@ class POSProvider extends ChangeNotifier {
 
   /// Atomically processes a staged list of order items for a given table,
   /// routing the ticket automatically into an active check session or initializing a fresh one./// Changes the status of an active item (e.g. tracking when food is served)
-  void updateOrderItemStatus(
-    String checkId,
-    String itemId,
-    OrderItemStatus newStatus,
-  ) {
-    final check = getCheckById(checkId);
-    if (check != null) {
-      final itemIdx = check.items.indexWhere((i) => i.id == itemId);
+
+  // Place this inside your POSProvider class in pos_provider.dart
+  /// Updates the status of a specific order item within an active check
+  void updateOrderItemStatus({
+    required String checkId,
+    required String itemName,
+    required int courseNumber,
+    required OrderItemStatus newStatus,
+  }) {
+    // Find the matching check
+    final checkIdx = _checks.indexWhere((c) => c.id == checkId);
+    if (checkIdx >= 0) {
+      final check = _checks[checkIdx];
+
+      // Find the specific item matching name and course number
+      final itemIdx = check.items.indexWhere(
+        (i) => i.name == itemName && i.courseNumber == courseNumber,
+      );
+
       if (itemIdx >= 0) {
+        // If your OrderItem fields are final/immutable, use copyWith:
+        // check.items[itemIdx] = check.items[itemIdx].copyWith(status: newStatus);
+
+        // If your OrderItem fields are mutable (like quantity):
         check.items[itemIdx].status = newStatus;
+
         notifyListeners();
       }
     }
