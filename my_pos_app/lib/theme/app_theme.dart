@@ -12,8 +12,8 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: const ColorScheme.dark(
-        primary: DarkColors.primary,
-        onPrimary: DarkColors.onPrimary,
+        primary: Color.fromARGB(255, 230, 234, 225),
+        onPrimary: Color.from(alpha: 255, red: 178, green: 237, blue: 98),
         primaryContainer: DarkColors.primaryContainer,
         onPrimaryContainer: DarkColors.onPrimaryContainer,
         inversePrimary: DarkColors.inversePrimary,

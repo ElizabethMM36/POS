@@ -237,7 +237,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                 ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
-                  backgroundColor: const Color(0xFF2563EB),
+                  backgroundColor: Color.fromARGB(255, 163, 239, 56),
                   foregroundColor: const Color(0xFFEEEFFF),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -379,7 +379,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                 }
               },
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: const Color.fromARGB(255, 161, 239, 52),
               ),
               child: const Text('Create'),
             ),
@@ -464,12 +464,12 @@ class _TableGridScreenState extends State<TableGridScreen>
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF2563EB)
+                            ? const Color.fromARGB(255, 127, 201, 24)
                             : const Color(0xFF1D1F27),
                         borderRadius: BorderRadius.circular(9999),
                         border: Border.all(
                           color: isSelected
-                              ? const Color(0xFF2563EB)
+                              ? const Color.fromARGB(255, 127, 201, 24)
                               : const Color(0xFF434655).withValues(alpha: 0.3),
                         ),
                       ),
@@ -754,7 +754,7 @@ class _TableGridScreenState extends State<TableGridScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor: const Color.fromARGB(255, 127, 227, 51),
         foregroundColor: Colors.white,
         onPressed: () => _showNewTableCheckDialog(context),
         child: const Icon(Icons.add_rounded),

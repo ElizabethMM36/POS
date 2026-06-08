@@ -113,7 +113,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Discount type options
                   ...DiscountType.values.map((type) {
                     final isSelected = selectedType == type;
                     return Padding(
@@ -178,7 +177,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     );
                   }),
                   const SizedBox(height: 20),
-                  // Amount input
                   if (selectedType != null) ...[
                     const Text(
                       'Discount Amount',
@@ -312,7 +310,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              // Quick reason buttons
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -393,8 +390,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     widget.checkId,
                     reason: reasonController.text,
                   );
-                  Navigator.of(ctx).pop(); // close dialog
-                  Navigator.of(context).pop(); // back to floor
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -459,7 +456,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Payment method selector
                   const Text(
                     'PAYMENT METHOD',
                     style: TextStyle(
@@ -530,7 +526,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     }).toList(),
                   ),
                   const SizedBox(height: 20),
-                  // Tip
                   const Text(
                     'TIP AMOUNT',
                     style: TextStyle(
@@ -544,7 +539,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      // Quick tip buttons
                       ...['15%', '18%', '20%'].map((pct) {
                         final percent = int.parse(pct.replaceAll('%', ''));
                         final tipAmt = (check.subtotal * percent / 100)
@@ -591,7 +585,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           ),
                         );
                       }),
-                      // Custom tip input
                       Expanded(
                         child: SizedBox(
                           height: 48,
@@ -639,7 +632,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     ],
                   ),
                   const SizedBox(height: 24),
-                  // Total row
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -679,8 +671,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                         paymentMethod: selectedMethod,
                         tip: tip,
                       );
-                      Navigator.of(ctx).pop(); // close sheet
-                      Navigator.of(context).pop(); // back to floor
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -734,7 +726,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
       );
     }
 
-    // Group items by course
     final courseMap = <int, List<OrderItem>>{};
     for (final item in check.items) {
       courseMap.putIfAbsent(item.courseNumber, () => []).add(item);
@@ -745,6 +736,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
       backgroundColor: const Color(0xFF11131B),
       appBar: AppBar(
         backgroundColor: const Color(0xFF11131B),
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           color: const Color(0xFFB4C5FF),
@@ -763,7 +755,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
               ),
             ),
             Text(
-              '${check.id} · ${check.covers} covers',
+              '${check.id.substring(0, 8).toUpperCase()} · ${check.covers} covers',
               style: const TextStyle(
                 fontFamily: 'JetBrains Mono',
                 fontSize: 11,
@@ -773,9 +765,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
           ],
         ),
         actions: [
-          // Fire confirmed indicator
           Container(
-            margin: const EdgeInsets.only(right: 12),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFF22C55E).withValues(alpha: 0.15),
@@ -805,6 +795,102 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
               ],
             ),
           ),
+          // 🔥 Dropdown Menu for Administrative Control Workflows
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Color(0xFFB4C5FF)),
+            color: const Color(0xFF1D1F27),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (value) {
+              switch (value) {
+                case 'discount':
+                  _showDiscountDialog(context, check);
+                  break;
+                case 'remove_discount':
+                  context.read<POSProvider>().removeDiscount(widget.checkId);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Discount removed'),
+                      backgroundColor: Color(0xFFF59E0B),
+                    ),
+                  );
+                  break;
+                case 'void':
+                  _showVoidDialog(context);
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'discount',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.local_offer_rounded,
+                      color: Color(0xFF8B5CF6),
+                      size: 18,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Apply Discount',
+                      style: TextStyle(
+                        color: Color(0xFFE1E2ED),
+                        fontFamily: 'Hanken Grotesk',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'remove_discount',
+                enabled: check.discount > 0,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.close_rounded,
+                      color: check.discount > 0
+                          ? const Color(0xFFEF4444)
+                          : const Color(0xFF434655),
+                      size: 18,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Remove Discount',
+                      style: TextStyle(
+                        color: check.discount > 0
+                            ? const Color(0xFFE1E2ED)
+                            : const Color(0xFF434655),
+                        fontFamily: 'Hanken Grotesk',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              const PopupMenuItem<String>(
+                value: 'void',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.block_rounded,
+                      color: Color(0xFFEF4444),
+                      size: 18,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Void Check',
+                      style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontFamily: 'Hanken Grotesk',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: FadeTransition(
@@ -816,7 +902,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Status timeline header
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -878,13 +963,11 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 ),
                 const SizedBox(height: 20),
 
-                // Items by course
                 ...sortedCourses.map((courseNum) {
                   final courseItems = courseMap[courseNum]!;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Course header
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Row(
@@ -923,7 +1006,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           ],
                         ),
                       ),
-                      // Course items
                       ...courseItems.map(
                         (item) => Container(
                           margin: const EdgeInsets.only(bottom: 8),
@@ -934,12 +1016,11 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                             border: Border.all(
                               color: const Color(
                                 0xFF434655,
-                              ).withValues(alpha: 0.3),
+                              ).withValues(alpha: 0.45),
                             ),
                           ),
                           child: Row(
                             children: [
-                              // Status indicator
                               Container(
                                 width: 36,
                                 height: 36,
@@ -962,6 +1043,10 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                   children: [
                                     Text(
                                       item.name,
+                                      maxLines:
+                                          1, // 🔥 Prevents text wrapping breaks
+                                      overflow: TextOverflow
+                                          .ellipsis, // 🔥 Strict grid safety truncation
                                       style: const TextStyle(
                                         fontFamily: 'Hanken Grotesk',
                                         fontSize: 15,
@@ -981,6 +1066,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Text(
                                 '\$${item.total.toStringAsFixed(2)}',
                                 style: const TextStyle(
@@ -999,7 +1085,6 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                   );
                 }),
 
-                // Totals breakdown
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -1055,62 +1140,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 ),
                 const SizedBox(height: 24),
 
-                // Discount, Remove Discount, and Print Check buttons row
+                // 🔥 Refactored Operational Section: Symmetrical bottom actions layout
                 Row(
                   children: [
-                    // Discount
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showDiscountDialog(context, check),
-                        icon: const Icon(Icons.local_offer_rounded, size: 18),
-                        label: const Text('Discount'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                          side: const BorderSide(color: Color(0xFF8B5CF6)),
-                          foregroundColor: const Color(0xFF8B5CF6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Remove Discount
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: check.discount > 0
-                            ? () {
-                                context.read<POSProvider>().removeDiscount(
-                                  widget.checkId,
-                                );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Discount removed'),
-                                    backgroundColor: Color(0xFFF59E0B),
-                                  ),
-                                );
-                              }
-                            : null,
-                        icon: const Icon(Icons.close_rounded, size: 18),
-                        label: const Text('Remove'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                          side: BorderSide(
-                            color: check.discount > 0
-                                ? const Color(0xFFEF4444)
-                                : const Color(0xFF434655),
-                          ),
-                          foregroundColor: check.discount > 0
-                              ? const Color(0xFFEF4444)
-                              : const Color(0xFF434655),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Print Check
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
@@ -1126,7 +1158,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           );
                         },
                         icon: const Icon(Icons.print_rounded, size: 18),
-                        label: const Text('Print'),
+                        label: const Text('Print Check'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
                           side: const BorderSide(color: Color(0xFF22C55E)),
@@ -1137,16 +1169,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                         ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Action buttons row
-                Row(
-                  children: [
-                    // Add More Items
                     const SizedBox(width: 12),
-                    // Save Check
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
@@ -1164,7 +1187,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           );
                         },
                         icon: const Icon(Icons.bookmark_add_rounded, size: 18),
-                        label: const Text('Save'),
+                        label: const Text('Save Check'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
                           side: const BorderSide(color: Color(0xFFF59E0B)),
@@ -1177,23 +1200,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                // Void Check Button
-                OutlinedButton.icon(
-                  onPressed: () => _showVoidDialog(context),
-                  icon: const Icon(Icons.block_rounded, size: 18),
-                  label: const Text('Void Check'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                    side: const BorderSide(color: Color(0xFFEF4444)),
-                    foregroundColor: const Color(0xFFEF4444),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Close Check
+                const SizedBox(height: 16),
+
+                // Dominant converted fulfillment handler
                 FilledButton.icon(
                   onPressed: () => _showPaymentDialog(context, check),
                   icon: const Icon(Icons.payment_rounded, size: 20),
