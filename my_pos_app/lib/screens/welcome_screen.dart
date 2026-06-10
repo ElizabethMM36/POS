@@ -42,11 +42,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       body: Stack(
         children: [
           // Background atmospheric glows and grids
-          Positioned.fill(
-            child: Container(
-              color: scaffoldBg,
-            ),
-          ),
+          Positioned.fill(child: Container(color: scaffoldBg)),
           // Subtle radial glow at the center
           Positioned.fill(
             child: DecoratedBox(
@@ -66,7 +62,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           Positioned.fill(
             child: CustomPaint(
               painter: _GridPatternPainter(
-                gridColor: cs.primaryContainer.withValues(alpha: isDark ? 0.04 : 0.06),
+                gridColor: cs.primaryContainer.withValues(
+                  alpha: isDark ? 0.04 : 0.06,
+                ),
               ),
             ),
           ),
@@ -94,21 +92,22 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               width: 100,
                               height: 100,
                               decoration: BoxDecoration(
-                                color: cs.primaryContainer,
+                                color: Color(0xFFFFFFFF),
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: cs.primaryContainer
-                                        .withValues(alpha: 0.4),
+                                    color: cs.primaryContainer.withValues(
+                                      alpha: 0.4,
+                                    ),
                                     blurRadius: 20,
                                     offset: const Offset(0, 8),
-                                  )
+                                  ),
                                 ],
                               ),
                               child: Icon(
                                 Icons.terminal_rounded,
                                 size: 52,
-                                color: cs.onPrimaryContainer,
+                                color: Color(0xFFFFFFFF),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -123,7 +122,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                       fontFamily: 'Hanken Grotesk',
                                       fontSize: 32,
                                       fontWeight: FontWeight.w800,
-                                      color: cs.primary,
+                                      color: Color(0xFFFFFFFF),
                                       letterSpacing: -0.02,
                                     ),
                                   ),
@@ -180,23 +179,20 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   colorBlendMode: BlendMode.dstATop,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Container(
-                                    color: cs.surfaceContainerLow,
-                                    child: Icon(
-                                      Icons.restaurant_menu_rounded,
-                                      size: 48,
-                                      color: cs.outlineVariant,
-                                    ),
-                                  ),
+                                        color: cs.surfaceContainerLow,
+                                        child: Icon(
+                                          Icons.restaurant_menu_rounded,
+                                          size: 48,
+                                          color: cs.outlineVariant,
+                                        ),
+                                      ),
                                 ),
                                 Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent,
-                                        scaffoldBg,
-                                      ],
+                                      colors: [Colors.transparent, scaffoldBg],
                                     ),
                                   ),
                                 ),
@@ -212,6 +208,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                             SizedBox(
                               width: double.infinity,
                               height: 56,
+
                               child: ElevatedButton.icon(
                                 onPressed: () {
                                   Navigator.of(context).push(
@@ -226,18 +223,20 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   style: TextStyle(
                                     fontFamily: 'Hanken Grotesk',
                                     fontSize: 18,
+                                    color: Color(0xFFFFFFFF),
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: cs.primaryContainer,
+                                  backgroundColor: cs.inversePrimary,
                                   foregroundColor: cs.onPrimaryContainer,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   elevation: 8,
-                                  shadowColor: cs.primaryContainer
-                                      .withValues(alpha: 0.3),
+                                  shadowColor: cs.primaryContainer.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                               ),
                             ),
@@ -252,8 +251,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 color: cs.surfaceContainer,
                                 borderRadius: BorderRadius.circular(9999),
                                 border: Border.all(
-                                  color: cs.outlineVariant
-                                      .withValues(alpha: 0.2),
+                                  color: cs.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
                                 ),
                               ),
                               child: Row(

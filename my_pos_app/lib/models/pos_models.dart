@@ -119,6 +119,7 @@ enum OrderItemStatus {
 enum DiscountType {
   employeeDiscount,
   deliveroo,
+  percent,
   customAmount;
 
   String get displayName {
@@ -127,6 +128,8 @@ enum DiscountType {
         return 'Employee Discount';
       case DiscountType.deliveroo:
         return 'Deliveroo';
+      case DiscountType.percent:
+        return 'percent';
       case DiscountType.customAmount:
         return 'Custom Amount';
     }
@@ -182,6 +185,9 @@ class OrderItem {
   int coverNumber;
   List<String> tags; // Track customized fields like allergies or substitutions
 
+  DateTime? orderedAt; // Track when item was sent to kitchen
+  DateTime? servedAt;
+
   OrderItem({
     required this.name,
     required this.quantity,
@@ -192,6 +198,8 @@ class OrderItem {
     this.notes = '',
     this.seatNumber = 1,
     this.coverNumber = 0,
+    this.orderedAt,
+    this.servedAt,
     List<String>? tags,
     String? id,
   }) : tags = tags ?? [],
@@ -200,6 +208,12 @@ class OrderItem {
            '${DateTime.now().millisecondsSinceEpoch}_${name}_C${courseNumber}_S$seatNumber';
 
   double get total => price * quantity;
+
+  /// Calculates individual item processing runtime latency
+  Duration? get prepTime {
+    if (orderedAt == null || servedAt == null) return null;
+    return servedAt!.difference(orderedAt!);
+  }
 
   OrderItem copyWith({
     String? name,
@@ -213,6 +227,8 @@ class OrderItem {
     int? coverNumber,
     List<String>? tags,
     String? id,
+    DateTime? orderedAt,
+    DateTime? servedAt,
   }) {
     return OrderItem(
       name: name ?? this.name,
@@ -226,6 +242,8 @@ class OrderItem {
       coverNumber: coverNumber ?? this.coverNumber,
       tags: tags ?? List<String>.from(this.tags),
       id: id ?? this.id,
+      orderedAt: orderedAt ?? this.orderedAt,
+      servedAt: servedAt ?? this.servedAt,
     );
   }
 }
@@ -245,6 +263,7 @@ class Check {
     this.tip = 0.0,
     this.discount = 0.0,
     this.discountType,
+    this.percent = 0,
     this.paymentMethod = '',
     this.voidReason = '',
   }) : items = items ?? [];
@@ -261,11 +280,22 @@ class Check {
   double tax;
   double tip;
   double discount;
+
   DiscountType? discountType;
+  double percent;
   String paymentMethod;
   String voidReason;
+  get total => subtotal + tax + tip - discount;
+  double get discountCalculated {
+    // Use ?? 0.0 to handle potential nulls if subtotal isn't initialized yet
+    final currentSubtotal = subtotal ?? 0.0;
 
-  double get total => subtotal + tax + tip - discount;
+    if (discountType == DiscountType.percent) {
+      return currentSubtotal * (discount / 100);
+    } else {
+      return discount;
+    }
+  }
 
   String get duration {
     final end = closedAt ?? DateTime.now();
@@ -280,11 +310,13 @@ class Check {
 class RestaurantTable {
   RestaurantTable({
     required this.number,
+
     this.status = TableStatus.available,
     this.covers = 0,
     this.duration = '',
     this.billAmount = 0.0,
     this.reservationTime = '',
+    this.seatedAt,
     this.activeCheckId,
     List<OrderItem>? orders,
   }) : orders = List<OrderItem>.from(orders ?? const []);
@@ -295,8 +327,13 @@ class RestaurantTable {
   String duration;
   double billAmount;
   String reservationTime;
+  DateTime? seatedAt;
   String? activeCheckId;
   final List<OrderItem> orders;
+  Duration get currentOccupancyDuration {
+    if (seatedAt == null) return Duration.zero;
+    return DateTime.now().difference(seatedAt!);
+  }
 
   RestaurantTable copyWith({
     TableStatus? status,
@@ -306,6 +343,7 @@ class RestaurantTable {
     String? reservationTime,
     String? activeCheckId,
     List<OrderItem>? orders,
+    DateTime? seatedAt,
   }) {
     return RestaurantTable(
       number: number,
@@ -315,6 +353,7 @@ class RestaurantTable {
       billAmount: billAmount ?? this.billAmount,
       reservationTime: reservationTime ?? this.reservationTime,
       activeCheckId: activeCheckId ?? this.activeCheckId,
+      seatedAt: seatedAt ?? this.seatedAt,
       orders: orders ?? List<OrderItem>.from(this.orders),
     );
   }

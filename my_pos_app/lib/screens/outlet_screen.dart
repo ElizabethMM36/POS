@@ -29,7 +29,7 @@ class OutletScreen extends StatelessWidget {
           builder: (context) {
             return IconButton(
               icon: const Icon(Icons.menu_rounded),
-              color: cs.primary,
+              color: cs.onSurfaceVariant,
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
@@ -41,13 +41,13 @@ class OutletScreen extends StatelessWidget {
           style: TextStyle(
             fontFamily: 'Hanken Grotesk',
             fontWeight: FontWeight.w600,
-            color: cs.primary,
+            color: cs.onSurfaceVariant,
           ),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.storefront_rounded),
-            color: cs.primary,
+            color: cs.onSurfaceVariant,
             onPressed: () {},
           ),
         ],
@@ -125,7 +125,7 @@ class OutletScreen extends StatelessWidget {
                   title: 'Terrace & Rooftop Bar',
                   subtitle: '2 Bartenders, 1 Server',
                   badgeText: '40% Occupied',
-                  badgeColor: const Color.fromARGB(255, 233, 241, 236),
+                  badgeColor: const Color.fromARGB(255, 107, 158, 126),
                   imageUrl:
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuDnEcCo5kswrpz6S_OygYnM9MpvlPmklWUbjAVwFabwBrtOE2YCSBu-71r0_ASZLT5iH5qJXbI7exaS_CgfpsOfMyY-Eqtqm8iOzsdkqR_hbP8PgVAq-4xkwxhC3iAiviN75D2hT2xEIFKeSnYoV57mw8A6G6N7m1QpskuFQijGBS7t4Fzh0iSl26f1623xGhlrOaGPiGUy1mn_p0NFrSRBbXUwZZBG_mgFuT4NAwA4nSCfk57ifHvgT75YyNAJiYV6iOBqgaTZ1cs',
                   isLocked: false,
@@ -165,7 +165,7 @@ class OutletScreen extends StatelessWidget {
                   title: 'Private Dining Room',
                   subtitle: 'VIP Dining',
                   badgeText: '1 Table Active',
-                  badgeColor: cs.primaryContainer,
+                  badgeColor: Color.fromARGB(31, 50, 132, 143),
                   imageUrl:
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuC7QmS1hBkYhJ07eNXcjl_NyvvQ9DGAZBPZkx8dmN-qjYPrtOjEU1x8fy2yT4hr_CrYAEt8IiADkHAUJn9VpgveG_xBqrc0CgETr4FsEltKg8rPj6yJz9q6rGK099poruruQiGlOdQk1RY9msPmT8KxGkw-zcMU8fULHpl_QfW5p5uh9EqOPlxs3teag69yGa1DerY2wJstU1CCf8_JdNOKf9hAwt_dDATSar_2gElXLREWSblH0lh-OxJYaM0MCzhZH63dXWGCwww',
                   isLocked: false,

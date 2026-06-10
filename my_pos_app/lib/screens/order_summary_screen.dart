@@ -81,11 +81,14 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
     final provider = context.read<POSProvider>();
     final customAmountController = TextEditingController();
     DiscountType? selectedType;
+    // Capture theme colors here so they're accessible inside the builder
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1D1F27),
+      backgroundColor: colors.surfaceContainerHigh,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -103,13 +106,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
                     'Apply Discount',
                     style: TextStyle(
                       fontFamily: 'Hanken Grotesk',
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFFE1E2ED),
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -126,15 +129,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(
-                                    0xFF2563EB,
-                                  ).withValues(alpha: 0.15)
-                                : const Color(0xFF191B23),
+                                ? colors.primary.withValues(alpha: 0.15)
+                                : colors.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
-                                  ? const Color(0xFF2563EB)
-                                  : const Color(0xFF434655),
+                                  ? colors.primary
+                                  : colors.outlineVariant,
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -147,27 +148,27 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: isSelected
-                                        ? const Color(0xFF2563EB)
-                                        : const Color(0xFF434655),
+                                        ? colors.primary
+                                        : colors.outlineVariant,
                                     width: 2,
                                   ),
                                 ),
                                 child: isSelected
-                                    ? const Icon(
+                                    ? Icon(
                                         Icons.check,
                                         size: 14,
-                                        color: Color(0xFF2563EB),
+                                        color: colors.primary,
                                       )
                                     : null,
                               ),
                               const SizedBox(width: 12),
                               Text(
                                 type.displayName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Hanken Grotesk',
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFFE1E2ED),
+                                  color: colors.onSurface,
                                 ),
                               ),
                             ],
@@ -178,13 +179,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                   }),
                   const SizedBox(height: 20),
                   if (selectedType != null) ...[
-                    const Text(
+                    Text(
                       'Discount Amount',
                       style: TextStyle(
                         fontFamily: 'Hanken Grotesk',
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFC3C6D7),
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -196,17 +197,17 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                       ],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'JetBrains Mono',
                         fontSize: 14,
-                        color: Color(0xFFE1E2ED),
+                        color: colors.onSurface,
                       ),
                       decoration: InputDecoration(
                         prefixText: '\$ ',
-                        prefixStyle: const TextStyle(
+                        prefixStyle: TextStyle(
                           fontFamily: 'JetBrains Mono',
                           fontSize: 14,
-                          color: Color(0xFFC3C6D7),
+                          color: colors.onSurfaceVariant,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -214,18 +215,14 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF434655),
-                          ),
+                          borderSide: BorderSide(color: colors.outlineVariant),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF434655),
-                          ),
+                          borderSide: BorderSide(color: colors.outlineVariant),
                         ),
                         filled: true,
-                        fillColor: const Color(0xFF191B23),
+                        fillColor: colors.surfaceContainerLowest,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -252,8 +249,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       },
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -279,34 +276,35 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
 
   void _showVoidDialog(BuildContext context) {
     final reasonController = TextEditingController();
+    final colors = Theme.of(context).colorScheme;
 
     showDialog<void>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1D1F27),
+          backgroundColor: colors.surfaceContainerHigh,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Void Check',
             style: TextStyle(
               fontFamily: 'Hanken Grotesk',
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: Color(0xFFE1E2ED),
+              color: colors.onSurface,
             ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Please provide a reason for voiding this check:',
                 style: TextStyle(
                   fontFamily: 'Hanken Grotesk',
                   fontSize: 14,
-                  color: Color(0xFFC3C6D7),
+                  color: colors.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),
@@ -323,8 +321,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       return OutlinedButton(
                         onPressed: () => reasonController.text = reason,
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF434655)),
-                          foregroundColor: const Color(0xFFC3C6D7),
+                          side: BorderSide(color: colors.outlineVariant),
+                          foregroundColor: colors.onSurfaceVariant,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -344,28 +342,28 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
               TextField(
                 controller: reasonController,
                 maxLines: 3,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'JetBrains Mono',
                   fontSize: 13,
-                  color: Color(0xFFE1E2ED),
+                  color: colors.onSurface,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Enter custom reason...',
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF434655),
+                  hintStyle: TextStyle(
+                    color: colors.outlineVariant,
                     fontFamily: 'JetBrains Mono',
                   ),
                   contentPadding: const EdgeInsets.all(12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF434655)),
+                    borderSide: BorderSide(color: colors.outlineVariant),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF434655)),
+                    borderSide: BorderSide(color: colors.outlineVariant),
                   ),
                   filled: true,
-                  fillColor: const Color(0xFF191B23),
+                  fillColor: colors.surfaceContainerLowest,
                 ),
               ),
             ],
@@ -373,13 +371,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text(
+              child: Text(
                 'Cancel',
                 style: TextStyle(
                   fontFamily: 'Hanken Grotesk',
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFC3C6D7),
+                  color: colors.onSurfaceVariant,
                 ),
               ),
             ),
@@ -424,11 +422,12 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
   void _showPaymentDialog(BuildContext context, Check check) {
     String selectedMethod = 'Card';
     final tipController = TextEditingController(text: '0');
+    final colors = Theme.of(context).colorScheme;
 
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1D1F27),
+      backgroundColor: colors.surfaceContainerHigh,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -446,23 +445,23 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
                     'Close Check',
                     style: TextStyle(
                       fontFamily: 'Hanken Grotesk',
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFFE1E2ED),
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'PAYMENT METHOD',
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFC3C6D7),
+                      color: colors.onSurfaceVariant,
                       letterSpacing: 0.05,
                     ),
                   ),
@@ -481,15 +480,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(
-                                      0xFF2563EB,
-                                    ).withValues(alpha: 0.2)
-                                  : const Color(0xFF191B23),
+                                  ? colors.primary.withValues(alpha: 0.15)
+                                  : colors.surfaceContainerLowest,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isSelected
-                                    ? const Color(0xFF2563EB)
-                                    : const Color(0xFF434655),
+                                    ? colors.primary
+                                    : colors.outlineVariant,
                                 width: isSelected ? 2 : 1,
                               ),
                             ),
@@ -502,8 +499,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                       ? Icons.payments_rounded
                                       : Icons.call_split_rounded,
                                   color: isSelected
-                                      ? const Color(0xFFB4C5FF)
-                                      : const Color(0xFFC3C6D7),
+                                      ? colors.primary
+                                      : colors.onSurfaceVariant,
                                   size: 24,
                                 ),
                                 const SizedBox(height: 4),
@@ -514,8 +511,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: isSelected
-                                        ? const Color(0xFFB4C5FF)
-                                        : const Color(0xFFC3C6D7),
+                                        ? colors.primary
+                                        : colors.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -526,13 +523,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                     }).toList(),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'TIP AMOUNT',
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFC3C6D7),
+                      color: colors.onSurfaceVariant,
                       letterSpacing: 0.05,
                     ),
                   ),
@@ -554,29 +551,29 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                               margin: const EdgeInsets.only(right: 8),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF191B23),
+                                color: colors.surfaceContainerLowest,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: const Color(0xFF434655),
+                                  color: colors.outlineVariant,
                                 ),
                               ),
                               child: Column(
                                 children: [
                                   Text(
                                     pct,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'JetBrains Mono',
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFFB4C5FF),
+                                      color: colors.primary,
                                     ),
                                   ),
                                   Text(
                                     '\$$tipAmt',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'JetBrains Mono',
                                       fontSize: 10,
-                                      color: Color(0xFFC3C6D7),
+                                      color: colors.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -596,35 +593,35 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                 RegExp(r'[\d.]'),
                               ),
                             ],
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'JetBrains Mono',
                               fontSize: 14,
-                              color: Color(0xFFE1E2ED),
+                              color: colors.onSurface,
                             ),
                             decoration: InputDecoration(
                               prefixText: '\$ ',
-                              prefixStyle: const TextStyle(
+                              prefixStyle: TextStyle(
                                 fontFamily: 'JetBrains Mono',
                                 fontSize: 14,
-                                color: Color(0xFFC3C6D7),
+                                color: colors.onSurfaceVariant,
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 10,
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF434655),
+                                borderSide: BorderSide(
+                                  color: colors.outlineVariant,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF434655),
+                                borderSide: BorderSide(
+                                  color: colors.outlineVariant,
                                 ),
                               ),
                               filled: true,
-                              fillColor: const Color(0xFF191B23),
+                              fillColor: colors.surfaceContainerLowest,
                             ),
                           ),
                         ),
@@ -635,19 +632,19 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF282A32),
+                      color: colors.surfaceContainer,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'TOTAL WITH TIP',
                           style: TextStyle(
                             fontFamily: 'JetBrains Mono',
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFC3C6D7),
+                            color: colors.onSurfaceVariant,
                           ),
                         ),
                         Text(
@@ -713,14 +710,17 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
   Widget build(BuildContext context) {
     final provider = context.watch<POSProvider>();
     final check = provider.getCheckById(widget.checkId);
+    // Single theme resolution point — all child widgets reference this
+    final colors = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
 
     if (check == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF11131B),
+      return Scaffold(
+        backgroundColor: scaffoldBg,
         body: Center(
           child: Text(
             'Check not found',
-            style: TextStyle(color: Color(0xFFE1E2ED)),
+            style: TextStyle(color: colors.onSurface),
           ),
         ),
       );
@@ -733,13 +733,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
     final sortedCourses = courseMap.keys.toList()..sort();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF11131B),
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF11131B),
+        backgroundColor: scaffoldBg,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          color: const Color(0xFFB4C5FF),
+          color: colors.primary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Column(
@@ -747,19 +747,19 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
           children: [
             Text(
               'Table ${check.tableNumber} · Order Summary',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Hanken Grotesk',
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFE1E2ED),
+                color: colors.onSurface,
               ),
             ),
             Text(
               '${check.id.substring(0, 8).toUpperCase()} · ${check.covers} covers',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'JetBrains Mono',
                 fontSize: 11,
-                color: Color(0xFFC3C6D7),
+                color: colors.onSurfaceVariant,
               ),
             ),
           ],
@@ -782,23 +782,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                   size: 14,
                   color: Color(0xFF22C55E),
                 ),
-                SizedBox(width: 4),
-                Text(
-                  'FIRED',
-                  style: TextStyle(
-                    fontFamily: 'JetBrains Mono',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF22C55E),
-                  ),
-                ),
               ],
             ),
           ),
-          // 🔥 Dropdown Menu for Administrative Control Workflows
+          // Dropdown Menu for Administrative Control Workflows
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Color(0xFFB4C5FF)),
-            color: const Color(0xFF1D1F27),
+            icon: Icon(Icons.more_vert, color: colors.primary),
+            color: colors.surfaceContainerHigh,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -822,20 +812,20 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
               }
             },
             itemBuilder: (BuildContext context) => [
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'discount',
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.local_offer_rounded,
                       color: Color(0xFF8B5CF6),
                       size: 18,
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Text(
                       'Apply Discount',
                       style: TextStyle(
-                        color: Color(0xFFE1E2ED),
+                        color: colors.onSurface,
                         fontFamily: 'Hanken Grotesk',
                       ),
                     ),
@@ -851,16 +841,16 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                       Icons.close_rounded,
                       color: check.discount > 0
                           ? const Color(0xFFEF4444)
-                          : const Color(0xFF434655),
+                          : colors.outlineVariant,
                       size: 18,
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Text(
                       'Remove Discount',
                       style: TextStyle(
                         color: check.discount > 0
-                            ? const Color(0xFFE1E2ED)
-                            : const Color(0xFF434655),
+                            ? colors.onSurface
+                            : colors.outlineVariant,
                         fontFamily: 'Hanken Grotesk',
                       ),
                     ),
@@ -902,20 +892,21 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Check info header card
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF2563EB).withValues(alpha: 0.15),
-                        const Color(0xFF191B23),
+                        colors.primary.withValues(alpha: 0.12),
+                        colors.surfaceContainerLow,
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                      color: colors.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -924,12 +915,12 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+                          color: colors.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.receipt_long_rounded,
-                          color: Color(0xFFB4C5FF),
+                          color: colors.primary,
                           size: 24,
                         ),
                       ),
@@ -940,19 +931,19 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           children: [
                             Text(
                               'Opened ${check.duration} ago',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Hanken Grotesk',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFFE1E2ED),
+                                color: colors.onSurface,
                               ),
                             ),
                             Text(
                               'Server: ${check.serverName}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'JetBrains Mono',
                                 fontSize: 12,
-                                color: Color(0xFFC3C6D7),
+                                color: colors.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -963,6 +954,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 ),
                 const SizedBox(height: 20),
 
+                // Course sections with order items
                 ...sortedCourses.map((courseNum) {
                   final courseItems = courseMap[courseNum]!;
                   return Column(
@@ -978,18 +970,16 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF2563EB,
-                                ).withValues(alpha: 0.15),
+                                color: colors.primary.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 'COURSE $courseNum',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'JetBrains Mono',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFFB4C5FF),
+                                  color: colors.primary,
                                   letterSpacing: 0.05,
                                 ),
                               ),
@@ -998,9 +988,9 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                             Expanded(
                               child: Container(
                                 height: 1,
-                                color: const Color(
-                                  0xFF434655,
-                                ).withValues(alpha: 0.3),
+                                color: colors.outlineVariant.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
                           ],
@@ -1011,12 +1001,12 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1D1F27),
+                            color: colors.surfaceContainer,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(
-                                0xFF434655,
-                              ).withValues(alpha: 0.45),
+                              color: colors.outlineVariant.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                           ),
                           child: Row(
@@ -1043,15 +1033,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                                   children: [
                                     Text(
                                       item.name,
-                                      maxLines:
-                                          1, // 🔥 Prevents text wrapping breaks
-                                      overflow: TextOverflow
-                                          .ellipsis, // 🔥 Strict grid safety truncation
-                                      style: const TextStyle(
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
                                         fontFamily: 'Hanken Grotesk',
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFFE1E2ED),
+                                        color: colors.onSurface,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -1069,11 +1057,11 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                               const SizedBox(width: 8),
                               Text(
                                 '\$${item.total.toStringAsFixed(2)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'JetBrains Mono',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFFB4C5FF),
+                                  color: colors.onSurface,
                                 ),
                               ),
                             ],
@@ -1085,13 +1073,14 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                   );
                 }),
 
+                // Totals breakdown card
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF191B23),
+                    color: colors.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFF434655).withValues(alpha: 0.3),
+                      color: colors.outlineVariant.withValues(alpha: 0.4),
                     ),
                   ),
                   child: Column(
@@ -1107,30 +1096,30 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                           valueColor: const Color(0xFF22C55E),
                         ),
                       ],
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(color: Color(0xFF434655)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(color: colors.outlineVariant),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'TOTAL',
                             style: TextStyle(
                               fontFamily: 'JetBrains Mono',
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFE1E2ED),
+                              color: colors.onSurface,
                               letterSpacing: 0.05,
                             ),
                           ),
                           Text(
                             '\$${check.total.toStringAsFixed(2)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Hanken Grotesk',
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFB4C5FF),
+                              color: colors.primary,
                             ),
                           ),
                         ],
@@ -1140,7 +1129,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 ),
                 const SizedBox(height: 24),
 
-                // 🔥 Refactored Operational Section: Symmetrical bottom actions layout
+                // Symmetrical bottom action buttons
                 Row(
                   children: [
                     Expanded(
@@ -1202,7 +1191,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // Dominant converted fulfillment handler
+                // Dominant Close Check / payment trigger button
                 FilledButton.icon(
                   onPressed: () => _showPaymentDialog(context, check),
                   icon: const Icon(Icons.payment_rounded, size: 20),
@@ -1243,15 +1232,17 @@ class _TotalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Hanken Grotesk',
             fontSize: 14,
-            color: Color(0xFFC3C6D7),
+            color: colors.onSurfaceVariant,
           ),
         ),
         Text(
@@ -1260,7 +1251,7 @@ class _TotalRow extends StatelessWidget {
             fontFamily: 'JetBrains Mono',
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: valueColor ?? const Color(0xFFE1E2ED),
+            color: valueColor ?? colors.onSurface,
           ),
         ),
       ],

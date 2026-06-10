@@ -8,6 +8,7 @@ import 'package:my_pos_app/screens/admin_rbac_screen.dart';
 
 /// The "Settings" tab — profile card, outlet info, app configuration,
 /// and admin access for RBAC management.
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -139,7 +140,9 @@ class SettingsScreen extends StatelessWidget {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF22C55E).withValues(alpha: 0.5),
+                              color: const Color(
+                                0xFF22C55E,
+                              ).withValues(alpha: 0.5),
                               blurRadius: 6,
                             ),
                           ],
@@ -239,7 +242,8 @@ class SettingsScreen extends StatelessWidget {
             _InfoTile(
               icon: Icons.attach_money_rounded,
               label: 'Session Revenue',
-              value: '\$${provider.closedChecks.fold<double>(0, (s, c) => s + c.total).toStringAsFixed(2)}',
+              value:
+                  '\$${provider.closedChecks.fold<double>(0, (s, c) => s + c.total).toStringAsFixed(2)}',
               color: const Color(0xFF22C55E),
             ),
             const SizedBox(height: 24),
@@ -290,7 +294,8 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Admin Section (only for admin/manager)
-            if (user?.role == UserRole.admin || user?.role == UserRole.manager) ...[
+            if (user?.role == UserRole.admin ||
+                user?.role == UserRole.manager) ...[
               _SectionHeader(title: 'ADMINISTRATION'),
               const SizedBox(height: 8),
               _SettingsTile(
@@ -348,13 +353,18 @@ class SettingsScreen extends StatelessWidget {
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: cs.onSurfaceVariant),
+                        ),
                       ),
                       FilledButton(
                         onPressed: () {
                           provider.clearSession();
                           Navigator.pop(ctx);
-                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst);
                         },
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFFEF4444),
@@ -376,7 +386,9 @@ class SettingsScreen extends StatelessWidget {
               ),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
-                backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                backgroundColor: const Color(
+                  0xFFEF4444,
+                ).withValues(alpha: 0.15),
                 foregroundColor: cs.error,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -452,9 +464,7 @@ class _InfoTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -519,9 +529,7 @@ class _SettingsTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: cs.surfaceContainer,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.3),
-          ),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [

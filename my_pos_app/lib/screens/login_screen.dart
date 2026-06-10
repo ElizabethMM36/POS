@@ -120,10 +120,7 @@ class _LoginScreenState extends State<LoginScreen>
                           gradient: LinearGradient(
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
-                            colors: [
-                              Colors.transparent,
-                              scaffoldBg,
-                            ],
+                            colors: [Colors.transparent, scaffoldBg],
                           ),
                         ),
                       ),
@@ -139,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 Icon(
                                   Icons.storefront_rounded,
                                   size: 52,
-                                  color: cs.primary,
+                                  color: Color(0xFFFFFFFF),
                                 ),
                                 const SizedBox(width: 16),
                                 Text(
@@ -148,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     fontFamily: 'Hanken Grotesk',
                                     fontSize: 32,
                                     fontWeight: FontWeight.w800,
-                                    color: cs.primary,
+                                    color: Color(0xFFFFFFFF),
                                     letterSpacing: -0.02,
                                   ),
                                 ),
@@ -203,8 +200,11 @@ class _LoginScreenState extends State<LoginScreen>
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Icon(Icons.sync_rounded,
-                                    size: 14, color: cs.onSurfaceVariant),
+                                Icon(
+                                  Icons.sync_rounded,
+                                  size: 14,
+                                  color: cs.onSurfaceVariant,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
                                   'SYNCED: 2 MINS AGO',
@@ -244,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   Icon(
                                     Icons.storefront_rounded,
                                     size: 32,
-                                    color: cs.primary,
+                                    color: Color(0xFFFFFFFF),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -253,7 +253,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       fontFamily: 'Hanken Grotesk',
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
-                                      color: cs.primary,
+                                      color: Color(0xFFFFFFFF),
                                     ),
                                   ),
                                 ],
@@ -310,7 +310,9 @@ class _LoginScreenState extends State<LoginScreen>
                                 final active = index < _currentPin.length;
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
-                                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
                                   width: 16,
                                   height: 16,
                                   decoration: BoxDecoration(
@@ -327,10 +329,11 @@ class _LoginScreenState extends State<LoginScreen>
                                     boxShadow: active
                                         ? [
                                             BoxShadow(
-                                              color: cs.primary
-                                                  .withValues(alpha: 0.5),
+                                              color: cs.primary.withValues(
+                                                alpha: 0.5,
+                                              ),
                                               blurRadius: 8,
-                                            )
+                                            ),
                                           ]
                                         : null,
                                   ),
@@ -408,10 +411,11 @@ class _LoginScreenState extends State<LoginScreen>
                 duration: const Duration(milliseconds: 300),
                 opacity: _isAuthenticating ? 1.0 : 0.0,
                 child: Container(
-                  color: (isDark
-                          ? const Color(0xFF0C0E16)
-                          : const Color(0xFF191B23))
-                      .withValues(alpha: 0.95),
+                  color:
+                      (isDark
+                              ? const Color(0xFF0C0E16)
+                              : const Color(0xFF191B23))
+                          .withValues(alpha: 0.95),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -421,19 +425,20 @@ class _LoginScreenState extends State<LoginScreen>
                         curve: Curves.elasticOut,
                         tween: Tween(begin: 0.0, end: 1.0),
                         builder: (context, scale, child) {
-                          return Transform.scale(
-                            scale: scale,
-                            child: child,
-                          );
+                          return Transform.scale(scale: scale, child: child);
                         },
                         child: Container(
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+                            color: const Color(
+                              0xFF22C55E,
+                            ).withValues(alpha: 0.15),
                             border: Border.all(
-                              color: const Color(0xFF22C55E).withValues(alpha: 0.3),
+                              color: const Color(
+                                0xFF22C55E,
+                              ).withValues(alpha: 0.3),
                               width: 2,
                             ),
                           ),
@@ -491,9 +496,7 @@ class _LoginScreenState extends State<LoginScreen>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -523,11 +526,7 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(16),
         child: Container(
           alignment: Alignment.center,
-          child: Icon(
-            icon,
-            size: 28,
-            color: cs.onSurfaceVariant,
-          ),
+          child: Icon(icon, size: 28, color: cs.onSurfaceVariant),
         ),
       ),
     );
@@ -548,7 +547,7 @@ class _LoginScreenState extends State<LoginScreen>
             size: 32,
             color: _biometricScanning
                 ? const Color(0xFF22C55E)
-                : cs.primary,
+                : cs.onSurfaceVariant,
           ),
         ),
       ),

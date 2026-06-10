@@ -5,48 +5,33 @@ import 'package:provider/provider.dart';
 
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
+import 'package:my_pos_app/theme/app_colors.dart';
 
-// ─── Shared design tokens (matches table_grid_screen.dart) ───────────────────
-const _kBg = Color(0xFF11131B);
-const _kSurface = Color(0xFF1D1F27);
-const _kSurface2 = Color(0xFF282A32);
-const _kBorder = Color(0xFF434655);
-const _kTextPrimary = Color(0xFFE1E2ED);
-const _kTextSub = Color(0xFFC3C6D7);
-const _kTextMuted = Color(0xFF6B7280);
-const _kBrandGreen = Color(0xFFB2ED62); // Clean hex format applied here
-const _kBlueLight = Color(0xFFB4C5FF);
-const _kGreen = Color(0xFF22C55E);
-const _kRed = Color(0xFFEF4444);
-const _kPurple = Color(0xFF8B5CF6);
-const _kOrange = Color(0xFFF97316);
-const _kAmber = Color(0xFFEAB308);
-const _kSlate = Color(0xFF64748B);
-
-// ─── Item-status palette ─────────────────────────────────────────────────────
-Color _itemStatusColor(OrderItemStatus s) {
+// ─── Semantic status colors adapted for optimal contrast ───────────────────
+Color _itemStatusColor(BuildContext context, OrderItemStatus s) {
+  final isLight = Theme.of(context).brightness == Brightness.light;
   switch (s) {
     case OrderItemStatus.pending:
-      return _kSlate;
+      return isLight ? const Color(0xFF475569) : const Color(0xFF64748B);
     case OrderItemStatus.fired:
-      return _kOrange;
+      return const Color(0xFFF97316);
     case OrderItemStatus.preparing:
-      return _kAmber;
+      return isLight ? const Color(0xFFB45309) : const Color(0xFFEAB308);
     case OrderItemStatus.ready:
-      return _kPurple;
+      return const Color(0xFF8B5CF6);
     case OrderItemStatus.served:
-      return _kGreen;
+      return const Color(0xFF22C55E);
   }
 }
 
-Color _tableStatusColor(TableStatus s) {
+Color _tableStatusColor(BuildContext context, TableStatus s) {
   switch (s) {
     case TableStatus.available:
-      return _kGreen;
+      return StatusColors.available;
     case TableStatus.occupied:
-      return _kRed;
+      return StatusColors.occupied;
     case TableStatus.readyForBill:
-      return _kPurple;
+      return const Color(0xFF8B5CF6);
   }
 }
 
@@ -145,10 +130,9 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _courseFilter = 'All Courses';
+  final String _courseFilter = 'All Courses';
   bool _analyticsExpanded = true;
 
-  // Track the currently selected table from the floor monitor
   int? _selectedTableNumber;
 
   late final AnimationController _pulseCtrl;
@@ -177,7 +161,6 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
   List<Check> _filter(List<Check> checks) {
     var filtered = checks;
 
-    // Filter by selected table if a server taps a floor node
     if (_selectedTableNumber != null) {
       filtered = filtered
           .where((c) => c.tableNumber == _selectedTableNumber)
@@ -205,21 +188,50 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
     final stats = _ShiftStats.from(provider);
     final tickets = _filter(provider.openChecks);
     final tables = provider.tables;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: _kBg,
-      appBar: _buildAppBar(provider.openChecks.length),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: _buildAppBar(context, provider.openChecks.length),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── 1. Floor monitor strip (Interactive) ────────────
+          // ── Search & Filter Input Bar ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _searchQuery = v),
+              style: TextStyle(color: theme.colorScheme.onSurface),
+              decoration: InputDecoration(
+                hintText: 'Search by check ID, table, or server...',
+                hintStyle: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: theme.colorScheme.primary,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+              ),
+            ),
+          ),
+
+          // ── 1. Floor monitor strip ──
           _FloorMonitorStrip(
             tables: tables,
             pulseAnim: _pulseAnim,
             selectedTable: _selectedTableNumber,
             onTableSelected: (tableNum) {
               setState(() {
-                // Toggle selection off if tapped again
                 _selectedTableNumber = _selectedTableNumber == tableNum
                     ? null
                     : tableNum;
@@ -227,7 +239,7 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
             },
           ),
 
-          // ── 2. Analytics panel ────────────────────────────────────────
+          // ── 2. Analytics panel ──
           _AnalyticsSection(
             stats: stats,
             expanded: _analyticsExpanded,
@@ -235,10 +247,10 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
                 setState(() => _analyticsExpanded = !_analyticsExpanded),
           ),
 
-          // ── 3. Order-tracking pipeline ────────────────────────────────
+          // ── 3. Order-tracking pipeline ──
           _OrderPipeline(stats: stats),
 
-          // ── 4. Ticket grid ────────────────────────────────────────────
+          // ── 4. Ticket grid ──
           Expanded(
             child: tickets.isEmpty
                 ? _EmptyState(
@@ -252,7 +264,7 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
                           maxCrossAxisExtent: 440,
                           mainAxisSpacing: 14,
                           crossAxisSpacing: 14,
-                          mainAxisExtent: 540,
+                          mainAxisExtent: 500,
                         ),
                     itemCount: tickets.length,
                     itemBuilder: (_, i) => _TicketCard(
@@ -266,9 +278,10 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar(int liveCount) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, int liveCount) {
+    final theme = Theme.of(context);
     return AppBar(
-      backgroundColor: _kSurface,
+      backgroundColor: theme.colorScheme.surfaceContainer,
       elevation: 0,
       automaticallyImplyLeading: false,
       titleSpacing: 16,
@@ -277,39 +290,39 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: _kBrandGreen.withOpacity(0.15),
+              color: theme.colorScheme.primary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.layers_outlined,
-              color: _kBrandGreen,
+              color: theme.colorScheme.primary,
               size: 20,
             ),
           ),
           const SizedBox(width: 10),
-          const Text(
+          Text(
             'Order Dashboard',
             style: TextStyle(
               fontFamily: 'Hanken Grotesk',
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: _kTextPrimary,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: _kBrandGreen.withOpacity(0.15),
+              color: theme.colorScheme.secondary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               '$liveCount LIVE CHECKS',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'JetBrains Mono',
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: _kBlueLight,
+                color: theme.colorScheme.secondary,
               ),
             ),
           ),
@@ -320,7 +333,7 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Floor Monitor Strip  — Interactive table selector
+// Floor Monitor Strip — Interactive table selector
 // ─────────────────────────────────────────────────────────────────────────────
 class _FloorMonitorStrip extends StatelessWidget {
   final List<RestaurantTable> tables;
@@ -337,21 +350,22 @@ class _FloorMonitorStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      color: _kSurface,
+      color: theme.colorScheme.surfaceContainer,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'FLOOR · LIVE',
                 style: TextStyle(
                   fontFamily: 'JetBrains Mono',
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: Color.fromARGB(255, 240, 242, 246),
+                  color: theme.colorScheme.onSurfaceVariant,
                   letterSpacing: 1.4,
                 ),
               ),
@@ -359,11 +373,11 @@ class _FloorMonitorStrip extends StatelessWidget {
                 const Spacer(),
                 Text(
                   'Filtering by Table $selectedTable',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'JetBrains Mono',
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: _kBlueLight,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ],
@@ -377,7 +391,7 @@ class _FloorMonitorStrip extends StatelessWidget {
               itemCount: tables.length,
               itemBuilder: (_, i) {
                 final t = tables[i];
-                final color = _tableStatusColor(t.status);
+                final color = _tableStatusColor(context, t.status);
                 final isBillReady = t.status == TableStatus.readyForBill;
                 final isSelected = selectedTable == t.number;
 
@@ -391,50 +405,44 @@ class _FloorMonitorStrip extends StatelessWidget {
                     ),
                     child: Container(
                       margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 0,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? color.withOpacity(0.20)
-                            : color.withOpacity(0.08),
+                            ? theme.colorScheme.primary
+                            : color.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: isSelected ? color : color.withOpacity(0.45),
-                          width: isSelected ? 1.5 : 1,
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : color.withOpacity(0.4),
+                          width: 1.5,
                         ),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
                           Text(
                             'T${t.number}',
                             style: TextStyle(
                               fontFamily: 'JetBrains Mono',
-                              fontSize: 11,
-                              fontWeight: isSelected
-                                  ? FontWeight.w900
-                                  : FontWeight.w700,
-                              color: isSelected ? Colors.white : color,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurface,
                             ),
                           ),
                           if (t.status != TableStatus.available) ...[
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             Text(
                               '\$${t.billAmount.toStringAsFixed(0)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'JetBrains Mono',
-                                fontSize: 10,
-                                color: _kBlueLight,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? theme.colorScheme.onPrimary
+                                    : theme.colorScheme.secondary,
                               ),
                             ),
                           ],
@@ -468,98 +476,76 @@ class _AnalyticsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      color: _kBg,
+      color: theme.scaffoldBackgroundColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row with toggle
           InkWell(
             onTap: onToggle,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     'SHIFT ANALYTICS',
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: Color.fromARGB(255, 231, 233, 236),
+                      color: theme.colorScheme.onSurfaceVariant,
                       letterSpacing: 1.4,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 6),
                   Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
-                    size: 16,
-                    color: const Color.fromARGB(255, 230, 231, 235),
+                    expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 14,
+                    color: theme.colorScheme.outline,
                   ),
                 ],
               ),
             ),
           ),
-
-          if (expanded) ...[
-            const SizedBox(height: 10),
-            // 🔥 FIX: Height bumped from 62 to 76 to eliminate the 9px vertical overflow
-            SizedBox(
-              height: 76,
-              child: ListView(
+          if (expanded)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _KpiTile(
-                    label: 'Checks',
-                    value: '${stats.openChecks}',
-                    icon: Icons.receipt_long_outlined,
-                    color: _kBrandGreen,
-                  ),
-                  const SizedBox(width: 8),
-                  _KpiTile(
-                    label: 'Covers',
-                    value: '${stats.totalCovers}',
-                    icon: Icons.people_outline,
-                    color: const Color(0xFF06B6D4),
-                  ),
-                  const SizedBox(width: 8),
-                  _KpiTile(
-                    label: 'Revenue',
-                    value: '\$${stats.liveRevenue.toStringAsFixed(0)}',
-                    icon: Icons.attach_money_rounded,
-                    color: const Color(0xFF10B981),
-                    valueSmall: true,
-                  ),
-                  const SizedBox(width: 8),
-                  _KpiTile(
-                    label: 'Avg/Check',
-                    value: '\$${stats.avgCheckValue.toStringAsFixed(0)}',
-                    icon: Icons.bar_chart_rounded,
-                    color: _kAmber,
-                    valueSmall: true,
-                  ),
-                  const SizedBox(width: 8),
-                  _KpiTile(
-                    label: 'In Kitchen',
-                    value: '${stats.itemsInKitchen}',
-                    icon: Icons.soup_kitchen_outlined,
-                    color: _kOrange,
-                  ),
-                  const SizedBox(width: 8),
-                  _CompletionRingTile(stats: stats),
-                ],
+                child: Row(
+                  children: [
+                    _KpiTile(
+                      label: 'Live Revenue',
+                      value: '\$${stats.liveRevenue.toStringAsFixed(2)}',
+                      icon: Icons.monetization_on_outlined,
+                      color: StatusColors.available,
+                    ),
+                    const SizedBox(width: 8),
+                    _KpiTile(
+                      label: 'Open Checks',
+                      value: '${stats.openChecks} Tickets',
+                      icon: Icons.receipt_long_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    _KpiTile(
+                      label: 'Total Covers',
+                      value: '${stats.totalCovers} Guests',
+                      icon: Icons.people_alt_outlined,
+                      color: const Color(0xFF8B5CF6),
+                    ),
+                    const SizedBox(width: 8),
+                    _CompletionRingTile(stats: stats),
+                    const SizedBox(width: 8),
+                    _TableOccupancyTile(stats: stats),
+                  ],
+                ),
               ),
             ),
-
-            const SizedBox(height: 14),
-
-            // Table occupancy summary bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: _TableOccupancyBar(stats: stats),
-            ),
-          ],
+          const SizedBox(height: 10),
         ],
       ),
     );
@@ -571,25 +557,24 @@ class _KpiTile extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
-  final bool valueSmall;
 
   const _KpiTile({
     required this.label,
     required this.value,
     required this.icon,
     required this.color,
-    this.valueSmall = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      width: 96, // Controlled uniform layout boundary
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      width: 110,
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: _kSurface,
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.22)),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -601,19 +586,19 @@ class _KpiTile extends StatelessWidget {
             value,
             style: TextStyle(
               fontFamily: 'JetBrains Mono',
-              fontSize: valueSmall ? 13 : 16,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: color,
+              color: theme.colorScheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Hanken Grotesk',
               fontSize: 9,
-              color: Color.fromARGB(255, 239, 241, 244),
+              color: theme.colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -629,13 +614,14 @@ class _CompletionRingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      width: 124, // Prevents horizontal clipping of text/gauge elements
+      width: 124,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: _kSurface,
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _kGreen.withOpacity(0.22)),
+        border: Border.all(color: StatusColors.available.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -649,44 +635,45 @@ class _CompletionRingTile extends StatelessWidget {
                 CircularProgressIndicator(
                   value: stats.completionPct,
                   strokeWidth: 3,
-                  backgroundColor: _kBorder,
-                  valueColor: const AlwaysStoppedAnimation<Color>(_kGreen),
+                  backgroundColor: theme.colorScheme.outlineVariant,
+                  color: StatusColors.available,
                 ),
                 Text(
-                  '${stats.servedPct}',
+                  '${stats.servedPct}%',
                   style: const TextStyle(
                     fontFamily: 'JetBrains Mono',
-                    fontSize: 7,
+                    fontSize: 8,
                     fontWeight: FontWeight.bold,
-                    color: _kGreen,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '${stats.servedPct}%',
-                style: const TextStyle(
-                  fontFamily: 'JetBrains Mono',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: _kGreen,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Served',
+                  style: TextStyle(
+                    fontFamily: 'Hanken Grotesk',
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              const Text(
-                'Served',
-                style: TextStyle(
-                  fontFamily: 'Hanken Grotesk',
-                  fontSize: 9,
-                  color: Color.fromARGB(255, 246, 247, 251),
+                Text(
+                  '${stats.itemsServed}/${stats.totalItems} Items',
+                  style: TextStyle(
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 9,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -694,95 +681,113 @@ class _CompletionRingTile extends StatelessWidget {
   }
 }
 
-class _TableOccupancyBar extends StatelessWidget {
+class _TableOccupancyTile extends StatelessWidget {
   final _ShiftStats stats;
-  const _TableOccupancyBar({required this.stats});
+  const _TableOccupancyTile({required this.stats});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final total =
         stats.availableTables + stats.occupiedTables + stats.billReadyTables;
-    if (total == 0) return const SizedBox.shrink();
+    final occPct = total > 0
+        ? ((stats.occupiedTables + stats.billReadyTables) / total * 100).round()
+        : 0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'TABLE OCCUPANCY',
-              style: TextStyle(
-                fontFamily: 'JetBrains Mono',
-                fontSize: 10,
-                color: Color.fromARGB(255, 245, 245, 245),
-                letterSpacing: 0.8,
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Occupancy',
+                style: TextStyle(
+                  fontFamily: 'Hanken Grotesk',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
-            ),
-            Text(
-              '${stats.occupiedTables + stats.billReadyTables}/$total occupied',
-              style: const TextStyle(
-                fontFamily: 'JetBrains Mono',
-                fontSize: 9,
-                color: Color.fromARGB(255, 234, 235, 240),
+              Text(
+                '$occPct%',
+                style: TextStyle(
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: 10,
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: SizedBox(
-            height: 6,
-            child: Row(
-              children: [
-                if (stats.occupiedTables > 0)
-                  Flexible(
-                    flex: stats.occupiedTables,
-                    child: Container(color: _kRed),
-                  ),
-                if (stats.billReadyTables > 0)
-                  Flexible(
-                    flex: stats.billReadyTables,
-                    child: Container(color: _kPurple),
-                  ),
-                if (stats.availableTables > 0)
-                  Flexible(
-                    flex: stats.availableTables,
-                    child: Container(color: _kBorder),
-                  ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 5),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: SizedBox(
+              height: 4,
+              child: Row(
+                children: [
+                  if (stats.occupiedTables > 0)
+                    Expanded(
+                      flex: stats.occupiedTables,
+                      child: Container(color: StatusColors.occupied),
+                    ),
+                  if (stats.billReadyTables > 0)
+                    Expanded(
+                      flex: stats.billReadyTables,
+                      child: Container(color: const Color(0xFF8B5CF6)),
+                    ),
+                  if (stats.availableTables > 0)
+                    Expanded(
+                      flex: stats.availableTables,
+                      child: Container(
+                        color: StatusColors.available.withOpacity(0.3),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 5),
-        Row(
-          children: [
-            _dot(_kRed, '${stats.occupiedTables} Occupied'),
-            const SizedBox(width: 12),
-            _dot(_kPurple, '${stats.billReadyTables} Bill Ready'),
-            const SizedBox(width: 12),
-            _dot(_kBorder, '${stats.availableTables} Available'),
-          ],
-        ),
-      ],
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _dot(StatusColors.available, 'A:${stats.availableTables}', theme),
+              _dot(StatusColors.occupied, 'O:${stats.occupiedTables}', theme),
+              _dot(
+                const Color(0xFF8B5CF6),
+                'B:${stats.billReadyTables}',
+                theme,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _dot(Color c, String label) => Row(
+  Widget _dot(Color c, String label, ThemeData theme) => Row(
     children: [
       Container(
         width: 6,
         height: 6,
         decoration: BoxDecoration(color: c, shape: BoxShape.circle),
       ),
-      const SizedBox(width: 4),
+      const SizedBox(width: 3),
       Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'JetBrains Mono',
-          fontSize: 9,
-          color: Color.fromARGB(255, 237, 238, 241),
+          fontSize: 8,
+          color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
     ],
@@ -790,7 +795,7 @@ class _TableOccupancyBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Order-Tracking Pipeline  — 5-stage visual with live counts
+// Order-Tracking Pipeline — Stage visual progress with live metrics
 // ─────────────────────────────────────────────────────────────────────────────
 class _OrderPipeline extends StatelessWidget {
   final _ShiftStats stats;
@@ -807,7 +812,7 @@ class _OrderPipeline extends StatelessWidget {
   static const _labels = {
     OrderItemStatus.pending: 'Pending',
     OrderItemStatus.fired: 'Fired',
-    OrderItemStatus.preparing: 'Preparing',
+    OrderItemStatus.preparing: 'Prep',
     OrderItemStatus.ready: 'Ready',
     OrderItemStatus.served: 'Served',
   };
@@ -815,129 +820,83 @@ class _OrderPipeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = stats.totalItems;
+    final theme = Theme.of(context);
 
     return Container(
-      color: _kSurface,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      color: theme.colorScheme.surfaceContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'ORDER TRACKING PIPELINE',
+          Text(
+            'PIPELINE PIPELINE WORKFLOW',
             style: TextStyle(
               fontFamily: 'JetBrains Mono',
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: Color.fromARGB(255, 254, 254, 254),
-              letterSpacing: 1.2,
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 1.4,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Row(
-            children: List.generate(OrderItemStatus.values.length * 2 - 1, (i) {
-              if (i.isOdd) {
-                final leftStatus = OrderItemStatus.values[(i - 1) ~/ 2];
-                final rightStatus = OrderItemStatus.values[(i + 1) ~/ 2];
-                return Expanded(
-                  child: Container(
-                    height: 2,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          _itemStatusColor(leftStatus).withOpacity(0.45),
-                          _itemStatusColor(rightStatus).withOpacity(0.45),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-              final status = OrderItemStatus.values[i ~/ 2];
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: OrderItemStatus.values.map((status) {
               final count = stats.statusCounts[status] ?? 0;
-              final active = count > 0;
-              final color = _itemStatusColor(status);
               final pct = total > 0 ? (count / total * 100).round() : 0;
+              final color = _itemStatusColor(context, status);
+              final active = count > 0;
 
               return Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: active ? color.withOpacity(0.14) : _kSurface2,
-                          border: Border.all(
-                            color: active ? color : _kBorder,
-                            width: active ? 2 : 1,
-                          ),
-                          boxShadow: active
-                              ? [
-                                  BoxShadow(
-                                    color: color.withOpacity(0.22),
-                                    blurRadius: 8,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Icon(
-                          _icons[status],
-                          size: 16,
-                          color: active ? color : _kTextMuted,
-                        ),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? color.withOpacity(0.15)
+                          : theme.colorScheme.outlineVariant.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: active
+                            ? color
+                            : theme.colorScheme.outlineVariant,
+                        width: 1.5,
                       ),
-                      if (active && count > 0)
-                        Positioned(
-                          top: -2,
-                          right: -2,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              count > 99 ? '99+' : '$count',
-                              style: const TextStyle(
-                                fontFamily: 'JetBrains Mono',
-                                fontSize: 7,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        _icons[status],
+                        size: 14,
+                        color: active ? color : theme.colorScheme.outline,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _labels[status]!,
                     style: TextStyle(
                       fontFamily: 'Hanken Grotesk',
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: active ? color : _kTextMuted,
+                      color: active
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.outline,
                     ),
                   ),
                   Text(
-                    '$pct%',
+                    '$count ($pct%)',
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
                       fontSize: 9,
-                      color: active ? color.withOpacity(0.65) : _kBorder,
+                      color: active
+                          ? color
+                          : theme.colorScheme.outline.withOpacity(0.5),
                     ),
                   ),
                 ],
               );
-            }),
+            }).toList(),
           ),
         ],
       ),
@@ -946,65 +905,7 @@ class _OrderPipeline extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Empty State
-// ─────────────────────────────────────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  final String query;
-  final int? selectedTable;
-  const _EmptyState({required this.query, this.selectedTable});
-
-  @override
-  Widget build(BuildContext context) {
-    String mainMsg = 'No active tickets';
-    String subMsg = '';
-
-    if (selectedTable != null) {
-      mainMsg = 'Table $selectedTable has no active orders';
-      subMsg = 'Wait for the server to open a new check.';
-    } else if (query.isNotEmpty) {
-      mainMsg = 'No results for "$query"';
-    }
-
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            (query.isEmpty && selectedTable == null)
-                ? Icons.receipt_long_outlined
-                : Icons.search_off_rounded,
-            size: 40,
-            color: _kTextMuted,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            mainMsg,
-            style: const TextStyle(
-              fontFamily: 'Hanken Grotesk',
-              color: _kTextMuted,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          if (subMsg.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              subMsg,
-              style: const TextStyle(
-                fontFamily: 'Hanken Grotesk',
-                color: _kTextMuted,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Ticket Card  — per-ticket mini pipeline + item list
+// Ticket Card Grid
 // ─────────────────────────────────────────────────────────────────────────────
 class _TicketCard extends StatelessWidget {
   final Check ticket;
@@ -1012,64 +913,31 @@ class _TicketCard extends StatelessWidget {
 
   const _TicketCard({required this.ticket, required this.courseFilter});
 
-  // Per-ticket status counts derived from check items
-  Map<OrderItemStatus, int> get _counts {
-    final m = {for (var s in OrderItemStatus.values) s: 0};
-    for (final item in ticket.items) {
-      m[item.status] = (m[item.status] ?? 0) + item.quantity;
-    }
-    return m;
-  }
-
-  // Elapsed time display
-  String get _elapsed {
-    final diff = DateTime.now().difference(ticket.openedAt);
-    if (diff.inHours > 0)
-      return '${diff.inHours}h ${diff.inMinutes.remainder(60)}m';
-    return '${diff.inMinutes}m';
-  }
-
-  // Check overall urgency colour based on time and status
-  Color get _urgencyColor {
-    final mins = DateTime.now().difference(ticket.openedAt).inMinutes;
-    final hasBillReady = ticket.items.any(
-      (i) => i.status == OrderItemStatus.ready,
-    );
-    if (hasBillReady) return _kPurple;
-    if (mins >= 60) return _kOrange;
-    return _kBorder;
-  }
-
-  static int _idLen(String v) => math.min(v.length, 8);
-
   @override
   Widget build(BuildContext context) {
-    final counts = _counts;
-    final total = counts.values.fold(0, (a, b) => a + b);
-    final served = counts[OrderItemStatus.served] ?? 0;
-    final ready = counts[OrderItemStatus.ready] ?? 0;
+    final theme = Theme.of(context);
+    final total = ticket.items.fold(0, (sum, item) => sum + item.quantity);
+    final served = ticket.items
+        .where((i) => i.status == OrderItemStatus.served)
+        .fold(0, (sum, item) => sum + item.quantity);
     final progress = total > 0 ? served / total : 0.0;
 
-    // Filter items by course
     final Map<int, List<OrderItem>> byCourse = {};
     for (final item in ticket.items) {
-      if (courseFilter != 'All Courses') {
-        final target =
-            int.tryParse(courseFilter.replaceAll('Course ', '')) ?? 1;
-        if (item.courseNumber != target) continue;
-      }
       byCourse.putIfAbsent(item.courseNumber, () => []).add(item);
     }
     final sortedCourses = byCourse.keys.toList()..sort();
 
     return Container(
       decoration: BoxDecoration(
-        color: _kSurface,
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _urgencyColor.withOpacity(0.5), width: 1),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withOpacity(
+              theme.brightness == Brightness.dark ? 0.25 : 0.05,
+            ),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -1078,156 +946,101 @@ class _TicketCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Card header ─────────────────────────────────────────────
+          // ── Card Header ──
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: const BoxDecoration(
-              color: _kSurface2,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(9)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHigh,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(9),
+              ),
             ),
             child: Row(
               children: [
-                // Table badge
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 3,
+                    horizontal: 8,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _kRed,
+                    color: theme.colorScheme.primary,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'T-${ticket.tableNumber}',
-                    style: const TextStyle(
+                    'TABLE ${ticket.tableNumber}',
+                    style: TextStyle(
                       fontFamily: 'JetBrains Mono',
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
                       fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: theme.colorScheme.onPrimary,
                     ),
                   ),
                 ),
-                const SizedBox(width: 7),
-                // Ticket ID
-                Text(
-                  ticket.id.substring(0, _idLen(ticket.id)),
-                  style: const TextStyle(
-                    fontFamily: 'JetBrains Mono',
-                    fontSize: 10,
-                    color: Color.fromARGB(255, 249, 250, 251),
-                  ),
-                ),
-                const Spacer(),
-                // Elapsed time
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _kBg,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.timer_outlined,
-                        size: 9,
-                        color: Color.fromARGB(255, 230, 232, 234),
-                      ),
-                      const SizedBox(width: 3),
                       Text(
-                        _elapsed,
-                        style: const TextStyle(
+                        ticket.serverName,
+                        style: TextStyle(
+                          fontFamily: 'Hanken Grotesk',
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'ID: ${ticket.id.substring(math.max(0, ticket.id.length - 6))}',
+                        style: TextStyle(
                           fontFamily: 'JetBrains Mono',
-                          fontSize: 9,
-                          color: Color.fromARGB(255, 231, 232, 235),
+                          fontSize: 10,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 7),
-                // Server name
-                Text(
-                  ticket.serverName,
-                  style: const TextStyle(
-                    fontFamily: 'Hanken Grotesk',
-                    fontSize: 11,
-                    color: _kTextSub,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Mini progress bar ────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
-            child: _TicketProgressRow(
-              counts: counts,
-              total: total,
-              served: served,
-              ready: ready,
-              progress: progress,
-            ),
-          ),
-
-          // Divider
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: Divider(color: _kBorder, height: 1, thickness: 1),
-          ),
-
-          // ── Bill total + covers info ──────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.people_outline,
-                  size: 11,
-                  color: Color.fromARGB(255, 235, 236, 238),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${ticket.covers} covers',
-                  style: const TextStyle(
-                    fontFamily: 'JetBrains Mono',
-                    fontSize: 10,
-                    color: _kTextMuted,
-                  ),
-                ),
-                const Spacer(),
                 Text(
                   '\$${ticket.total.toStringAsFixed(2)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'JetBrains Mono',
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: _kBlueLight,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ],
             ),
           ),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            child: Divider(color: _kBorder, height: 1, thickness: 1),
+          // Progress Tracker Strip
+          LinearProgressIndicator(
+            value: progress,
+            minHeight: 3,
+            backgroundColor: theme.colorScheme.outlineVariant.withOpacity(0.3),
+            color: StatusColors.available,
           ),
 
-          // ── Course breakdown + status dropdowns ──────────────────────
+          // ── Course Items List ──
           Expanded(
             child: sortedCourses.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
-                      'No items for this filter',
-                      style: TextStyle(color: _kTextMuted, fontSize: 11),
+                      'No items ordered.',
+                      style: TextStyle(
+                        color: theme.colorScheme.outline,
+                        fontSize: 12,
+                      ),
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     itemCount: sortedCourses.length,
                     itemBuilder: (_, ci) {
                       final courseNum = sortedCourses[ci];
@@ -1236,30 +1049,22 @@ class _TicketCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 5),
+                            padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.restaurant_menu,
                                   size: 12,
-                                  color: _kBlueLight,
+                                  color: theme.colorScheme.secondary,
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
                                   'COURSE $courseNum',
-                                  style: const TextStyle(
-                                    fontFamily: 'Hanken Grotesk',
-                                    fontWeight: FontWeight.w800,
-                                    color: _kBlueLight,
+                                  style: TextStyle(
+                                    fontFamily: 'JetBrains Mono',
                                     fontSize: 10,
-                                    letterSpacing: 0.4,
-                                  ),
-                                ),
-                                const Expanded(
-                                  child: Divider(
-                                    indent: 6,
-                                    color: _kBorder,
-                                    thickness: 1,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.secondary,
                                   ),
                                 ),
                               ],
@@ -1268,6 +1073,7 @@ class _TicketCard extends StatelessWidget {
                           ...items.map(
                             (item) => _ItemRow(ticket: ticket, item: item),
                           ),
+                          const Divider(height: 12),
                         ],
                       );
                     },
@@ -1280,107 +1086,7 @@ class _TicketCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Per-ticket mini progress bar
-// ─────────────────────────────────────────────────────────────────────────────
-class _TicketProgressRow extends StatelessWidget {
-  final Map<OrderItemStatus, int> counts;
-  final int total;
-  final int served;
-  final int ready;
-  final double progress;
-
-  const _TicketProgressRow({
-    required this.counts,
-    required this.total,
-    required this.served,
-    required this.ready,
-    required this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Stacked colour bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(2),
-          child: SizedBox(
-            height: 4,
-            child: Row(
-              children: OrderItemStatus.values.map((s) {
-                final cnt = counts[s] ?? 0;
-                return Flexible(
-                  flex: total > 0
-                      ? (cnt / total * 1000).round().clamp(0, 1000)
-                      : 0,
-                  child: Container(color: _itemStatusColor(s)),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 5),
-        Row(
-          children: [
-            Text(
-              '$served/$total served',
-              style: const TextStyle(
-                fontFamily: 'JetBrains Mono',
-                fontSize: 9,
-                color: _kTextMuted,
-              ),
-            ),
-            const Spacer(),
-            if (ready > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: _kPurple.withOpacity(0.14),
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(color: _kPurple.withOpacity(0.4)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.notifications_active_outlined,
-                      size: 9,
-                      color: _kPurple,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '$ready READY',
-                      style: const TextStyle(
-                        fontFamily: 'JetBrains Mono',
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        color: _kPurple,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(width: 6),
-            Text(
-              '${(progress * 100).round()}%',
-              style: TextStyle(
-                fontFamily: 'JetBrains Mono',
-                fontSize: 9,
-                color: progress >= 1.0 ? _kGreen : _kTextMuted,
-                fontWeight: progress >= 1.0
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Individual item row with status dropdown
+// Individual Item Tracker Row with Context Menu Modifier
 // ─────────────────────────────────────────────────────────────────────────────
 class _ItemRow extends StatelessWidget {
   final Check ticket;
@@ -1390,70 +1096,53 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _itemStatusColor(item.status);
+    final theme = Theme.of(context);
+    final color = _itemStatusColor(context, item.status);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Text(
-            '${item.quantity}×',
-            style: const TextStyle(
+            '${item.quantity}x',
+            style: TextStyle(
               fontFamily: 'JetBrains Mono',
-              color: Color.fromARGB(255, 250, 250, 251),
-              fontWeight: FontWeight.bold,
               fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(width: 7),
+          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontFamily: 'Hanken Grotesk',
-                    color: _kTextPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (item.tags.isNotEmpty)
-                  Text(
-                    item.tags.join(' · '),
-                    style: const TextStyle(
-                      fontFamily: 'Hanken Grotesk',
-                      fontSize: 9,
-                      color: _kAmber,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
+            child: Text(
+              item.name,
+              style: TextStyle(
+                fontFamily: 'Hanken Grotesk',
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
-          const SizedBox(width: 6),
-          // Status dropdown  — calls provider.updateOrderItemStatus via name+course key
           PopupMenuButton<OrderItemStatus>(
-            onSelected: (next) {
-              context.read<POSProvider>().updateOrderItemStatus(
-                checkId: ticket.id,
-                itemName: item.name,
-                courseNumber: item.courseNumber,
-                newStatus: next,
+            onSelected: (newStatus) {
+              final itemIndex = ticket.items.indexOf(item);
+              context.read<POSProvider>().updateItemStatus(
+                ticket.id,
+                itemIndex,
+                newStatus,
               );
             },
-            itemBuilder: (_) => OrderItemStatus.values.map((s) {
-              return PopupMenuItem<OrderItemStatus>(
+            itemBuilder: (context) => OrderItemStatus.values.map((s) {
+              return PopupMenuItem(
                 value: s,
                 child: Row(
                   children: [
                     Container(
-                      width: 7,
-                      height: 7,
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
-                        color: _itemStatusColor(s),
+                        color: _itemStatusColor(context, s),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -1470,11 +1159,11 @@ class _ItemRow extends StatelessWidget {
               );
             }).toList(),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: color.withOpacity(0.38), width: 1),
+                border: Border.all(color: color.withOpacity(0.4), width: 1),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1497,5 +1186,82 @@ class _ItemRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty State Widget
+// ─────────────────────────────────────────────────────────────────────────────
+class _EmptyState extends StatelessWidget {
+  final String query;
+  final int? selectedTable;
+
+  const _EmptyState({required this.query, this.selectedTable});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    String mainMsg = 'No active tickets';
+    String subMsg = '';
+
+    if (selectedTable != null) {
+      mainMsg = 'Table $selectedTable has no active orders';
+      subMsg = 'Wait for the server to open a new check.';
+    } else if (query.isNotEmpty) {
+      mainMsg = 'No results for "$query"';
+    }
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            (query.isEmpty && selectedTable == null)
+                ? Icons.receipt_long_outlined
+                : Icons.search_off_rounded,
+            size: 44,
+            color: theme.colorScheme.outline,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            mainMsg,
+            style: TextStyle(
+              fontFamily: 'Hanken Grotesk',
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          if (subMsg.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              subMsg,
+              style: TextStyle(
+                fontFamily: 'Hanken Grotesk',
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Inside _CheckManagementScreenState
+  Widget _buildCoursePerformance(List<OrderItem> items) {
+    // Example: Find the earliest order time vs latest serve time for a course
+    final orderedTimes = items.map((i) => i.orderedAt).whereType<DateTime>();
+    final servedTimes = items.map((i) => i.servedAt).whereType<DateTime>();
+
+    if (orderedTimes.isEmpty || servedTimes.isEmpty)
+      return const SizedBox.shrink();
+
+    final start = orderedTimes.reduce((a, b) => a.isBefore(b) ? a : b);
+    final end = servedTimes.reduce((a, b) => a.isAfter(b) ? a : b);
+
+    final duration = end.difference(start);
+
+    return Text("Course prep time: ${duration.inMinutes} mins");
   }
 }

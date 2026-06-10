@@ -17,9 +17,9 @@ class DarkColors {
   static const Color surfaceContainerHighest = Color(0xFF32343D);
 
   // ── Text & Outlines ──
-  static const Color onSurface = Color(0xFFE1E2ED);
+  static const Color onSurface = Color.fromARGB(255, 241, 243, 239);
   static const Color onSurfaceVariant = Color(0xFFC3C6D7);
-  static const Color inverseSurface = Color(0xFFE1E2ED);
+  static const Color inverseSurface = Color.fromARGB(255, 225, 238, 213);
   static const Color inverseOnSurface = Color(0xFF2E3039);
   static const Color outline = Color(0xFF8D90A0);
   static const Color outlineVariant = Color(0xFF434655);
@@ -28,7 +28,7 @@ class DarkColors {
   static const Color primary = Color(0xFFB4C5FF);
   static const Color onPrimary = Color(0xFF002A78);
   static const Color primaryContainer = Color.fromARGB(255, 110, 141, 208);
-  static const Color onPrimaryContainer = Color(0xFFEEEFFF);
+  static const Color onPrimaryContainer = Color.fromARGB(255, 97, 187, 65);
   static const Color inversePrimary = Color.fromARGB(255, 137, 161, 203);
 
   // ── Secondary ──

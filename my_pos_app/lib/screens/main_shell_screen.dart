@@ -29,14 +29,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<POSProvider>();
     final currentIndex = provider.currentNavIndex;
+    final theme = Theme.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        body: IndexedStack(
-          index: currentIndex,
-          children: _pages,
-        ),
+        body: IndexedStack(index: currentIndex, children: _pages),
         bottomNavigationBar: _CommandCenterNavBar(
           currentIndex: currentIndex,
           onTap: (index) => provider.setNavIndex(index),
@@ -47,24 +47,20 @@ class _MainShellScreenState extends State<MainShellScreen> {
 }
 
 class _CommandCenterNavBar extends StatelessWidget {
-  const _CommandCenterNavBar({
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const _CommandCenterNavBar({required this.currentIndex, required this.onTap});
 
   final int currentIndex;
   final void Function(int) onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF191B23),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
         border: Border(
-          top: BorderSide(
-            color: Color(0xFF434655),
-            width: 0.5,
-          ),
+          top: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -123,6 +119,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -135,10 +133,13 @@ class _NavItem extends StatelessWidget {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF2563EB).withValues(alpha: 0.2)
+                        ? theme.colorScheme.primary.withValues(alpha: 0.15)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -146,8 +147,8 @@ class _NavItem extends StatelessWidget {
                     icon,
                     size: 22,
                     color: isSelected
-                        ? const Color(0xFFB4C5FF)
-                        : const Color(0xFFC3C6D7),
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 if (badgeCount > 0)
@@ -155,18 +156,21 @@ class _NavItem extends StatelessWidget {
                     right: 6,
                     top: -2,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444),
+                        color: theme.colorScheme.error,
                         borderRadius: BorderRadius.circular(9999),
                       ),
                       child: Text(
                         '$badgeCount',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'JetBrains Mono',
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: theme.colorScheme.onError,
                         ),
                       ),
                     ),
@@ -181,8 +185,8 @@ class _NavItem extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? const Color(0xFFB4C5FF)
-                    : const Color(0xFFC3C6D7),
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],

@@ -1015,7 +1015,7 @@ class _OrderScreenState extends State<OrderScreen> {
                       ? Icons.notifications_active_rounded
                       : Icons.notifications_none_rounded,
                   color: _notifications.isNotEmpty
-                      ? cs.primary
+                      ? cs.onTertiaryContainer
                       : cs.onSurfaceVariant,
                 ),
                 onPressed: () => _showNotificationBoard(context),
@@ -1062,6 +1062,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 style: const TextStyle(
                   fontFamily: 'Hanken Grotesk',
                   fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 236, 239, 239),
                   fontSize: 14,
                 ),
               ),
@@ -1148,7 +1149,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: isSelected
-                                      ? cs.onPrimary
+                                      ? cs.onTertiaryContainer
                                       : cs.onSurfaceVariant,
                                 ),
                               ),
@@ -1181,7 +1182,7 @@ class _OrderScreenState extends State<OrderScreen> {
                           fontFamily: 'JetBrains Mono',
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: cs.primary,
+                          color: cs.onTertiaryContainer,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -1283,7 +1284,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: activeSeatQty > 0
-                                          ? cs.primary
+                                          ? cs.onTertiaryContainer
                                           : cs.outlineVariant,
                                       width: activeSeatQty > 0 ? 2 : 1,
                                     ),
@@ -1316,7 +1317,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                             '\$${menuItem.price.toStringAsFixed(2)}',
                                             style: TextStyle(
                                               fontFamily: 'JetBrains Mono',
-                                              color: cs.primary,
+                                              color: cs.onTertiaryContainer,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
                                             ),

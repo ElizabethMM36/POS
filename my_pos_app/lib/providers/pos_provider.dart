@@ -261,6 +261,8 @@ class POSProvider extends ChangeNotifier {
           return table.copyWith(
             billAmount: activeCheck.total,
             orders: activeCheck.items,
+            duration:
+                activeCheck.duration, // 👈 ADD THIS: Maps live time to table
           );
         }
         return table;
@@ -890,8 +892,25 @@ class POSProvider extends ChangeNotifier {
 
   void updateItemStatus(String checkId, int itemIndex, OrderItemStatus status) {
     final check = getCheckById(checkId);
-    if (check != null && itemIndex < check.items.length) {
-      check.items[itemIndex].status = status;
+
+    // Ensure the check exists and the item index is within valid bounds
+    if (check != null && itemIndex >= 0 && itemIndex < check.items.length) {
+      final item = check.items[itemIndex];
+
+      // If moving to "Served" status, record the timestamp
+      if (status == OrderItemStatus.served) {
+        item.servedAt = DateTime.now();
+      }
+
+      // Optional: If you also want to capture when cooking/preparation starts
+      if (status == OrderItemStatus.preparing && item.orderedAt == null) {
+        item.orderedAt = DateTime.now();
+      }
+
+      // Update the status
+      item.status = status;
+
+      // Notify UI elements to repaint
       notifyListeners();
     }
   }
@@ -1000,5 +1019,14 @@ class POSProvider extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  void seatTable(int tableNumber, int covers) {
+    final table = getTableByNumber(tableNumber);
+    if (table != null) {
+      table.seatedAt = DateTime.now(); // Start the clock
+      table.status = TableStatus.occupied;
+      notifyListeners();
+    }
   }
 }
