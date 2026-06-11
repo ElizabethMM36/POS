@@ -1,13 +1,41 @@
 import 'dart:math' as math;
+import 'dart:ui';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
+import 'package:path_provider/path_provider.dart';
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
+import 'package:my_pos_app/screens/analytics_dashboard_screen.dart';
 import 'package:my_pos_app/theme/app_colors.dart';
+import 'package:my_pos_app/widgets/pos_background.dart';
 
-// ─── Semantic status colors adapted for optimal contrast ───────────────────
+// ─── Route helper ─────────────────────────────────────────────────────────────
+// Was referenced on line 361 but never defined. Defined here as a top-level
+// function so both CheckManagementScreen and any future screen can call it.
+Route<void> frostedAnalyticsRoute() {
+  return PageRouteBuilder<void>(
+    pageBuilder: (context, animation, secondaryAnimation) =>
+        const AnalyticsDashboardScreen(),
+    transitionDuration: const Duration(milliseconds: 380),
+    reverseTransitionDuration: const Duration(milliseconds: 280),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+      final slide = Tween<Offset>(
+        begin: const Offset(0.0, 0.04),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+      return FadeTransition(
+        opacity: fade,
+        child: SlideTransition(position: slide, child: child),
+      );
+    },
+  );
+}
+
+// ─── Semantic status colors ───────────────────────────────────────────────────
 Color _itemStatusColor(BuildContext context, OrderItemStatus s) {
   final isLight = Theme.of(context).brightness == Brightness.light;
   switch (s) {
@@ -35,18 +63,427 @@ Color _tableStatusColor(BuildContext context, TableStatus s) {
   }
 }
 
-// ─── Derived analytics computed purely from provider state ───────────────────
+// ─── Daily Summary Report builder ────────────────────────────────────────────
+// Produces a plain-text daily summary report suitable for printing / exporting.
+String _buildDailySummaryReport(POSProvider provider) {
+  final now = DateTime.now();
+  final dateStr =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final timeStr =
+      '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+  final closed = provider.closedChecks;
+  final open = provider.openChecks;
+  final allToday = [...closed, ...open];
+
+  double grossSales = 0;
+  double totalDiscounts = 0;
+  double totalTax = 0;
+  double totalTips = 0;
+  int totalCovers = 0;
+  final Map<String, int> paymentMethodCounts = {};
+  final Map<String, double> paymentMethodTotals = {};
+  final Map<String, double> serverTotals = {};
+
+  for (final c in allToday) {
+    grossSales += c.subtotal;
+    totalDiscounts += c.discountCalculated;
+    totalTax += c.tax;
+    totalTips += c.tip;
+    totalCovers += c.covers;
+
+    final pm = c.paymentMethod.isEmpty ? 'Unpaid' : c.paymentMethod;
+    paymentMethodCounts[pm] = (paymentMethodCounts[pm] ?? 0) + 1;
+    paymentMethodTotals[pm] = (paymentMethodTotals[pm] ?? 0) + c.total;
+
+    serverTotals[c.serverName] = (serverTotals[c.serverName] ?? 0) + c.subtotal;
+  }
+
+  final netSales = grossSales - totalDiscounts;
+  final avgCheck = allToday.isNotEmpty ? grossSales / allToday.length : 0.0;
+
+  final buf = StringBuffer();
+
+  // Header
+  buf.writeln('═' * 48);
+  buf.writeln('         DAILY SUMMARY REPORT');
+  buf.writeln('═' * 48);
+  buf.writeln('  Date     : $dateStr');
+  buf.writeln('  Time     : $timeStr');
+  buf.writeln('  Outlet   : ${provider.selectedOutlet?.name ?? "—"}');
+  buf.writeln('─' * 48);
+
+  // Sales summary
+  buf.writeln('  SALES SUMMARY');
+  buf.writeln('─' * 48);
+  buf.writeln('  Gross Sales        : \$${grossSales.toStringAsFixed(2)}');
+  buf.writeln('  Total Discounts    : -\$${totalDiscounts.toStringAsFixed(2)}');
+  buf.writeln('  Net Sales          : \$${netSales.toStringAsFixed(2)}');
+  buf.writeln('  Tax Collected      : \$${totalTax.toStringAsFixed(2)}');
+  buf.writeln('  Tips               : \$${totalTips.toStringAsFixed(2)}');
+  buf.writeln('─' * 48);
+
+  // Covers & checks
+  buf.writeln('  COVERS & CHECKS');
+  buf.writeln('─' * 48);
+  buf.writeln('  Total Checks       : ${allToday.length}');
+  buf.writeln('  Open Checks        : ${open.length}');
+  buf.writeln('  Closed Checks      : ${closed.length}');
+  buf.writeln('  Total Covers       : $totalCovers');
+  buf.writeln('  Avg Check Value    : \$${avgCheck.toStringAsFixed(2)}');
+  buf.writeln('─' * 48);
+
+  // Tender breakdown
+  buf.writeln('  TENDER BREAKDOWN');
+  buf.writeln('─' * 48);
+  for (final entry in paymentMethodTotals.entries) {
+    final count = paymentMethodCounts[entry.key] ?? 0;
+    buf.writeln(
+      '  ${entry.key.padRight(18)} : \$${entry.value.toStringAsFixed(2)} ($count txns)',
+    );
+  }
+  buf.writeln('─' * 48);
+
+  // Staff performance
+  buf.writeln('  STAFF PERFORMANCE');
+  buf.writeln('─' * 48);
+  final sortedServers = serverTotals.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  for (final e in sortedServers) {
+    buf.writeln('  ${e.key.padRight(20)} : \$${e.value.toStringAsFixed(2)}');
+  }
+  buf.writeln('─' * 48);
+
+  // Open checks detail
+  if (open.isNotEmpty) {
+    buf.writeln('  OPEN CHECKS (Live)');
+    buf.writeln('─' * 48);
+    for (final c in open) {
+      buf.writeln(
+        '  T${c.tableNumber} | ${c.serverName} | \$${c.total.toStringAsFixed(2)} | ${c.covers} pax',
+      );
+    }
+    buf.writeln('─' * 48);
+  }
+
+  buf.writeln('═' * 48);
+  buf.writeln('  END OF REPORT');
+  buf.writeln('═' * 48);
+
+  return buf.toString();
+}
+
+void _showExportReportSheet(BuildContext context, POSProvider provider) {
+  final report = _buildDailySummaryReport(provider); // existing text builder
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) {
+      return Container(
+        height: MediaQuery.of(ctx).size.height * 0.75,
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF141C26).withOpacity(0.97)
+              : Colors.white.withOpacity(0.96),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.10)
+                : Colors.white.withOpacity(0.65),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+              blurRadius: 32,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Title row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.summarize_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Daily Summary Report',
+                          style: TextStyle(
+                            fontFamily: 'Hanken Grotesk',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          'Generated ${DateTime.now().toString().substring(0, 16)}',
+                          style: TextStyle(
+                            fontFamily: 'JetBrains Mono',
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Copy plain-text to clipboard
+                  IconButton(
+                    icon: Icon(
+                      Icons.copy_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
+                    tooltip: 'Copy to clipboard',
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: report));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Report copied to clipboard',
+                            style: TextStyle(fontFamily: 'Hanken Grotesk'),
+                          ),
+                          backgroundColor: StatusColors.available,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Divider(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.06),
+              height: 1,
+            ),
+            // Report preview
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.25)
+                        : const Color(0xFFFFF8F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.06)
+                          : Colors.orange.withOpacity(0.15),
+                    ),
+                  ),
+                  child: SelectableText(
+                    report,
+                    style: TextStyle(
+                      fontFamily: 'JetBrains Mono',
+                      fontSize: 12,
+                      height: 1.6,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Export button
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                8,
+                20,
+                MediaQuery.of(ctx).padding.bottom + 16,
+              ),
+              child: FilledButton.icon(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  await _exportToTxt(context, report);
+                },
+                icon: const Icon(Icons.download_rounded, size: 18),
+                label: const Text(
+                  'Export Report (.txt)',
+                  style: TextStyle(
+                    fontFamily: 'Hanken Grotesk',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+// -- Core export logic -------------------------------------------------------
+
+/// Writes [report] to a .txt file on the Windows Desktop.
+/// Shows a SnackBar with the saved filename on success, or an error message.
+Future<void> _exportToTxt(BuildContext context, String report) async {
+  try {
+    final file = await _saveTxtToDesktop(report);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Saved to Desktop: ${file.path.split(Platform.pathSeparator).last}',
+            style: const TextStyle(fontFamily: 'Hanken Grotesk'),
+          ),
+          backgroundColor: StatusColors.available,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Export failed: $e',
+            style: const TextStyle(fontFamily: 'Hanken Grotesk'),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  }
+}
+
+/// Resolves the Windows Desktop path, creates a timestamped .txt file,
+/// writes [report] into it, and returns the [File].
+Future<File> _saveTxtToDesktop(String report) async {
+  final now = DateTime.now();
+  final dateStr =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final timeStr =
+      '${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}';
+  final fileName = 'DailySummary_${dateStr}_$timeStr.txt';
+
+  final saveDir = await _resolveWritableDir();
+  final filePath = '${saveDir.path}${Platform.pathSeparator}$fileName';
+  final file = File(filePath)..writeAsStringSync(report);
+  return file;
+}
+
+Future<Directory> _resolveWritableDir() async {
+  // Android emulator — use Downloads folder via external storage
+  if (Platform.isAndroid) {
+    // /storage/emulated/0/Download is always writable on Android emulator
+    final downloadsDir = Directory('/storage/emulated/0/Download');
+    if (downloadsDir.existsSync()) {
+      try {
+        final probe = File('${downloadsDir.path}/._poswrite_probe');
+        probe.writeAsStringSync('');
+        probe.deleteSync();
+        return downloadsDir;
+      } catch (_) {}
+    }
+    // Fallback to app documents dir
+    return await getApplicationDocumentsDirectory();
+  }
+
+  // Windows desktop
+  if (Platform.isWindows) {
+    final env = Platform.environment;
+    final candidates = <String>[
+      if (env['USERPROFILE'] != null) '${env['USERPROFILE']}\\Desktop',
+      if (env['HOMEDRIVE'] != null && env['HOMEPATH'] != null)
+        '${env['HOMEDRIVE']}${env['HOMEPATH']}\\Desktop',
+      if (env['USERPROFILE'] != null) env['USERPROFILE']!,
+    ];
+    for (final path in candidates) {
+      if (path.isEmpty) continue;
+      final dir = Directory(path);
+      if (!dir.existsSync()) continue;
+      try {
+        final probe = File('$path\\._poswrite_probe');
+        probe.writeAsStringSync('');
+        probe.deleteSync();
+        return dir;
+      } catch (_) {
+        continue;
+      }
+    }
+  }
+
+  // macOS / Linux
+  if (Platform.isMacOS || Platform.isLinux) {
+    final home = Platform.environment['HOME'];
+    if (home != null) {
+      final desktop = Directory('$home/Desktop');
+      if (desktop.existsSync()) return desktop;
+      return Directory(home);
+    }
+  }
+
+  return await getApplicationDocumentsDirectory();
+}
+
+// ─── Derived analytics ────────────────────────────────────────────────────────
 class _ShiftStats {
   final int openChecks;
   final int totalCovers;
   final double liveRevenue;
   final double avgCheckValue;
-  final int itemsInKitchen; // fired + preparing
+  final int itemsInKitchen;
   final int itemsReady;
   final int itemsServed;
   final int totalItems;
   final Map<OrderItemStatus, int> statusCounts;
-  // Table-level
   final int availableTables;
   final int occupiedTables;
   final int billReadyTables;
@@ -78,7 +515,6 @@ class _ShiftStats {
     final Map<OrderItemStatus, int> counts = {
       for (var s in OrderItemStatus.values) s: 0,
     };
-
     for (final c in open) {
       covers += c.covers;
       revenue += c.total;
@@ -86,21 +522,18 @@ class _ShiftStats {
         counts[item.status] = (counts[item.status] ?? 0) + item.quantity;
       }
     }
-
     final total = counts.values.fold(0, (a, b) => a + b);
     final served = counts[OrderItemStatus.served] ?? 0;
     final ready = counts[OrderItemStatus.ready] ?? 0;
     final inKit =
         (counts[OrderItemStatus.fired] ?? 0) +
         (counts[OrderItemStatus.preparing] ?? 0);
-
     final tables = p.tables;
     final avail = tables.where((t) => t.status == TableStatus.available).length;
     final occ = tables.where((t) => t.status == TableStatus.occupied).length;
     final billRdy = tables
         .where((t) => t.status == TableStatus.readyForBill)
         .length;
-
     return _ShiftStats(
       openChecks: open.length,
       totalCovers: covers,
@@ -131,8 +564,7 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final String _courseFilter = 'All Courses';
-  bool _analyticsExpanded = true;
-
+  bool _analyticsExpanded = false;
   int? _selectedTableNumber;
 
   late final AnimationController _pulseCtrl;
@@ -160,13 +592,11 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
 
   List<Check> _filter(List<Check> checks) {
     var filtered = checks;
-
     if (_selectedTableNumber != null) {
       filtered = filtered
           .where((c) => c.tableNumber == _selectedTableNumber)
           .toList();
     }
-
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       filtered = filtered
@@ -178,7 +608,6 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
           )
           .toList();
     }
-
     return filtered;
   }
 
@@ -189,151 +618,182 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
     final tickets = _filter(provider.openChecks);
     final tables = provider.tables;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: _buildAppBar(context, provider.openChecks.length),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Search & Filter Input Bar ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (v) => setState(() => _searchQuery = v),
-              style: TextStyle(color: theme.colorScheme.onSurface),
-              decoration: InputDecoration(
-                hintText: 'Search by check ID, table, or server...',
-                hintStyle: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+    return POSBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _buildAppBar(context, provider),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Glass search bar ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.white.withOpacity(0.45),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: theme.colorScheme.primary,
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontFamily: 'Hanken Grotesk',
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search by check ID, table, or server...',
+                    hintStyle: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(
+                        0.6,
+                      ),
+                      fontFamily: 'Hanken Grotesk',
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              size: 18,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
               ),
             ),
-          ),
 
-          // ── 1. Floor monitor strip ──
-          _FloorMonitorStrip(
-            tables: tables,
-            pulseAnim: _pulseAnim,
-            selectedTable: _selectedTableNumber,
-            onTableSelected: (tableNum) {
-              setState(() {
-                _selectedTableNumber = _selectedTableNumber == tableNum
-                    ? null
-                    : tableNum;
-              });
-            },
-          ),
+            // ── Floor monitor strip ───────────────────────────────────────
+            _FloorMonitorStrip(
+              tables: tables,
+              pulseAnim: _pulseAnim,
+              selectedTable: _selectedTableNumber,
+              onTableSelected: (tableNum) {
+                setState(() {
+                  _selectedTableNumber = _selectedTableNumber == tableNum
+                      ? null
+                      : tableNum;
+                });
+              },
+            ),
 
-          // ── 2. Analytics panel ──
-          _AnalyticsSection(
-            stats: stats,
-            expanded: _analyticsExpanded,
-            onToggle: () =>
-                setState(() => _analyticsExpanded = !_analyticsExpanded),
-          ),
+            // ── Analytics panel (collapsible) ─────────────────────────────
+            _AnalyticsSection(
+              stats: stats,
+              expanded: _analyticsExpanded,
+              onToggle: () =>
+                  setState(() => _analyticsExpanded = !_analyticsExpanded),
+            ),
 
-          // ── 3. Order-tracking pipeline ──
-          _OrderPipeline(stats: stats),
+            // ── Order pipeline ────────────────────────────────────────────
+            _OrderPipeline(stats: stats),
 
-          // ── 4. Ticket grid ──
-          Expanded(
-            child: tickets.isEmpty
-                ? _EmptyState(
-                    query: _searchQuery,
-                    selectedTable: _selectedTableNumber,
-                  )
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 440,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          mainAxisExtent: 500,
-                        ),
-                    itemCount: tickets.length,
-                    itemBuilder: (_, i) => _TicketCard(
-                      ticket: tickets[i],
-                      courseFilter: _courseFilter,
+            // ── Ticket grid ───────────────────────────────────────────────
+            Expanded(
+              child: tickets.isEmpty
+                  ? _EmptyState(
+                      query: _searchQuery,
+                      selectedTable: _selectedTableNumber,
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 440,
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 14,
+                            mainAxisExtent: 400,
+                          ),
+                      itemCount: tickets.length,
+                      itemBuilder: (_, i) => _TicketCard(
+                        ticket: tickets[i],
+                        courseFilter: _courseFilter,
+                      ),
                     ),
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, int liveCount) {
+  // ── AppBar — now receives provider for report export button ──────────────
+  PreferredSizeWidget _buildAppBar(BuildContext context, POSProvider provider) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return AppBar(
-      backgroundColor: theme.colorScheme.surfaceContainer,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       automaticallyImplyLeading: false,
       titleSpacing: 16,
       title: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
+              color: isDark
+                  ? theme.colorScheme.primary.withOpacity(0.15)
+                  : theme.colorScheme.primary.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              Icons.layers_outlined,
+              Icons.layers_rounded,
               color: theme.colorScheme.primary,
-              size: 20,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Text(
             'Order Dashboard',
             style: TextStyle(
               fontFamily: 'Hanken Grotesk',
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
             ),
           ),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.secondary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '$liveCount LIVE CHECKS',
-              style: TextStyle(
-                fontFamily: 'JetBrains Mono',
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.secondary,
-              ),
-            ),
-          ),
         ],
       ),
+      actions: [
+        // ── Export daily summary report ────────────────────────────────
+        IconButton(
+          icon: Icon(Icons.summarize_rounded, color: theme.colorScheme.primary),
+          tooltip: 'Export Daily Summary Report',
+          onPressed: () => _showExportReportSheet(context, provider),
+        ),
+        // ── Analytics dashboard ────────────────────────────────────────
+        IconButton(
+          icon: Icon(Icons.insights_rounded, color: theme.colorScheme.primary),
+          tooltip: 'Shift Analytics',
+          // Uses the now-defined frostedAnalyticsRoute() top-level function
+          onPressed: () => Navigator.of(context).push(frostedAnalyticsRoute()),
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Floor Monitor Strip — Interactive table selector
 // ─────────────────────────────────────────────────────────────────────────────
 class _FloorMonitorStrip extends StatelessWidget {
   final List<RestaurantTable> tables;
@@ -351,9 +811,11 @@ class _FloorMonitorStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      color: theme.colorScheme.surfaceContainer,
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+      color: Colors.transparent,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -383,7 +845,7 @@ class _FloorMonitorStrip extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           SizedBox(
             height: 38,
             child: ListView.builder(
@@ -404,36 +866,41 @@ class _FloorMonitorStrip extends StatelessWidget {
                       child: child,
                     ),
                     child: Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? theme.colorScheme.primary
-                            : color.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: isSelected
-                              ? theme.colorScheme.primary
-                              : color.withOpacity(0.4),
-                          width: 1.5,
-                        ),
+                            : (isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.white.withOpacity(0.50)),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Text(
                             'T${t.number}',
                             style: TextStyle(
                               fontFamily: 'JetBrains Mono',
                               fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w800,
                               color: isSelected
                                   ? theme.colorScheme.onPrimary
                                   : theme.colorScheme.onSurface,
                             ),
                           ),
                           if (t.status != TableStatus.available) ...[
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
                               '\$${t.billAmount.toStringAsFixed(0)}',
                               style: TextStyle(
@@ -441,8 +908,10 @@ class _FloorMonitorStrip extends StatelessWidget {
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: isSelected
-                                    ? theme.colorScheme.onPrimary
-                                    : theme.colorScheme.secondary,
+                                    ? theme.colorScheme.onPrimary.withOpacity(
+                                        0.8,
+                                      )
+                                    : theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -461,8 +930,6 @@ class _FloorMonitorStrip extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Analytics Section — KPI horizontal strip + table occupancy bar
-// ─────────────────────────────────────────────────────────────────────────────
 class _AnalyticsSection extends StatelessWidget {
   final _ShiftStats stats;
   final bool expanded;
@@ -477,16 +944,19 @@ class _AnalyticsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Container(
-      color: theme.scaffoldBackgroundColor,
+      color: Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
             onTap: onToggle,
+            borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'SHIFT ANALYTICS',
@@ -503,16 +973,21 @@ class _AnalyticsSection extends StatelessWidget {
                     expanded
                         ? Icons.expand_less_rounded
                         : Icons.expand_more_rounded,
-                    size: 14,
+                    size: 16,
                     color: theme.colorScheme.outline,
                   ),
                 ],
               ),
             ),
           ),
-          if (expanded)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+          AnimatedCrossFade(
+            crossFadeState: expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+            firstChild: const SizedBox(height: 0, width: double.infinity),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -520,32 +995,32 @@ class _AnalyticsSection extends StatelessWidget {
                     _KpiTile(
                       label: 'Live Revenue',
                       value: '\$${stats.liveRevenue.toStringAsFixed(2)}',
-                      icon: Icons.monetization_on_outlined,
+                      icon: Icons.monetization_on_rounded,
                       color: StatusColors.available,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     _KpiTile(
                       label: 'Open Checks',
                       value: '${stats.openChecks} Tickets',
-                      icon: Icons.receipt_long_outlined,
+                      icon: Icons.receipt_long_rounded,
                       color: theme.colorScheme.primary,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     _KpiTile(
                       label: 'Total Covers',
                       value: '${stats.totalCovers} Guests',
-                      icon: Icons.people_alt_outlined,
+                      icon: Icons.people_alt_rounded,
                       color: const Color(0xFF8B5CF6),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     _CompletionRingTile(stats: stats),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     _TableOccupancyTile(stats: stats),
                   ],
                 ),
               ),
             ),
-          const SizedBox(height: 10),
+          ),
         ],
       ),
     );
@@ -568,38 +1043,42 @@ class _KpiTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      width: 110,
-      padding: const EdgeInsets.all(8),
+      width: 120,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.white.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(height: 3),
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
               fontFamily: 'JetBrains Mono',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
               fontFamily: 'Hanken Grotesk',
-              fontSize: 9,
+              fontSize: 10,
               color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -615,41 +1094,47 @@ class _CompletionRingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      width: 124,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      width: 135,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: StatusColors.available.withOpacity(0.3)),
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.white.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: 28,
-            height: 28,
+            width: 32,
+            height: 32,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 CircularProgressIndicator(
                   value: stats.completionPct,
-                  strokeWidth: 3,
-                  backgroundColor: theme.colorScheme.outlineVariant,
+                  strokeWidth: 3.5,
+                  backgroundColor: theme.colorScheme.outlineVariant.withOpacity(
+                    isDark ? 0.2 : 0.5,
+                  ),
                   color: StatusColors.available,
                 ),
                 Text(
                   '${stats.servedPct}%',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'JetBrains Mono',
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,7 +1144,7 @@ class _CompletionRingTile extends StatelessWidget {
                   'Served',
                   style: TextStyle(
                     fontFamily: 'Hanken Grotesk',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onSurface,
                   ),
@@ -688,6 +1173,7 @@ class _TableOccupancyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final total =
         stats.availableTables + stats.occupiedTables + stats.billReadyTables;
     final occPct = total > 0
@@ -695,15 +1181,17 @@ class _TableOccupancyTile extends StatelessWidget {
         : 0;
 
     return Container(
-      width: 150,
-      padding: const EdgeInsets.all(8),
+      width: 160,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.white.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -712,7 +1200,7 @@ class _TableOccupancyTile extends StatelessWidget {
                 'Occupancy',
                 style: TextStyle(
                   fontFamily: 'Hanken Grotesk',
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
                 ),
@@ -721,18 +1209,18 @@ class _TableOccupancyTile extends StatelessWidget {
                 '$occPct%',
                 style: TextStyle(
                   fontFamily: 'JetBrains Mono',
-                  fontSize: 10,
+                  fontSize: 11,
                   color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(4),
             child: SizedBox(
-              height: 4,
+              height: 6,
               child: Row(
                 children: [
                   if (stats.occupiedTables > 0)
@@ -756,7 +1244,7 @@ class _TableOccupancyTile extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -781,12 +1269,13 @@ class _TableOccupancyTile extends StatelessWidget {
         height: 6,
         decoration: BoxDecoration(color: c, shape: BoxShape.circle),
       ),
-      const SizedBox(width: 3),
+      const SizedBox(width: 4),
       Text(
         label,
         style: TextStyle(
           fontFamily: 'JetBrains Mono',
-          fontSize: 8,
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
@@ -794,8 +1283,6 @@ class _TableOccupancyTile extends StatelessWidget {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Order-Tracking Pipeline — Stage visual progress with live metrics
 // ─────────────────────────────────────────────────────────────────────────────
 class _OrderPipeline extends StatelessWidget {
   final _ShiftStats stats;
@@ -821,15 +1308,16 @@ class _OrderPipeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = stats.totalItems;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      color: theme.colorScheme.surfaceContainer,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'PIPELINE PIPELINE WORKFLOW',
+            'PIPELINE WORKFLOW',
             style: TextStyle(
               fontFamily: 'JetBrains Mono',
               fontSize: 10,
@@ -838,7 +1326,7 @@ class _OrderPipeline extends StatelessWidget {
               letterSpacing: 1.4,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: OrderItemStatus.values.map((status) {
@@ -850,45 +1338,45 @@ class _OrderPipeline extends StatelessWidget {
               return Column(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: active
-                          ? color.withOpacity(0.15)
-                          : theme.colorScheme.outlineVariant.withOpacity(0.5),
+                          ? color.withOpacity(isDark ? 0.2 : 0.15)
+                          : (isDark
+                                ? Colors.white.withOpacity(0.03)
+                                : Colors.white.withOpacity(0.4)),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: active
-                            ? color
-                            : theme.colorScheme.outlineVariant,
-                        width: 1.5,
-                      ),
                     ),
                     child: Center(
                       child: Icon(
                         _icons[status],
-                        size: 14,
-                        color: active ? color : theme.colorScheme.outline,
+                        size: 18,
+                        color: active
+                            ? color
+                            : theme.colorScheme.outline.withOpacity(0.6),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     _labels[status]!,
                     style: TextStyle(
                       fontFamily: 'Hanken Grotesk',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
                       color: active
                           ? theme.colorScheme.onSurface
                           : theme.colorScheme.outline,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     '$count ($pct%)',
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
-                      fontSize: 9,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                       color: active
                           ? color
                           : theme.colorScheme.outline.withOpacity(0.5),
@@ -905,8 +1393,6 @@ class _OrderPipeline extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Ticket Card Grid
-// ─────────────────────────────────────────────────────────────────────────────
 class _TicketCard extends StatelessWidget {
   final Check ticket;
   final String courseFilter;
@@ -916,6 +1402,8 @@ class _TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final total = ticket.items.fold(0, (sum, item) => sum + item.quantity);
     final served = ticket.items
         .where((i) => i.status == OrderItemStatus.served)
@@ -930,53 +1418,48 @@ class _TicketCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
+        // Glassmorphic — no Border.all, no solid fill
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.white.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(
-              theme.brightness == Brightness.dark ? 0.25 : 0.05,
-            ),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(isDark ? 0.08 : 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Card Header ──
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHigh,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(9),
-              ),
-            ),
+          // ── Card header ─────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 10,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'TABLE ${ticket.tableNumber}',
+                    'T${ticket.tableNumber}',
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
-                      fontSize: 11,
+                      fontSize: 14,
                       fontWeight: FontWeight.w900,
                       color: theme.colorScheme.onPrimary,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -985,18 +1468,19 @@ class _TicketCard extends StatelessWidget {
                         ticket.serverName,
                         style: TextStyle(
                           fontFamily: 'Hanken Grotesk',
-                          fontSize: 12,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 2),
                       Text(
-                        'ID: ${ticket.id.substring(math.max(0, ticket.id.length - 6))}',
+                        'ID: ${ticket.id.substring(math.max(0, ticket.id.length - 6)).toUpperCase()}',
                         style: TextStyle(
                           fontFamily: 'JetBrains Mono',
-                          fontSize: 10,
+                          fontSize: 11,
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -1007,8 +1491,8 @@ class _TicketCard extends StatelessWidget {
                   '\$${ticket.total.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontFamily: 'JetBrains Mono',
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                     color: theme.colorScheme.primary,
                   ),
                 ),
@@ -1016,15 +1500,17 @@ class _TicketCard extends StatelessWidget {
             ),
           ),
 
-          // Progress Tracker Strip
+          // Progress bar
           LinearProgressIndicator(
             value: progress,
-            minHeight: 3,
-            backgroundColor: theme.colorScheme.outlineVariant.withOpacity(0.3),
+            minHeight: 2,
+            backgroundColor: theme.colorScheme.outlineVariant.withOpacity(
+              isDark ? 0.2 : 0.5,
+            ),
             color: StatusColors.available,
           ),
 
-          // ── Course Items List ──
+          // ── Course items ─────────────────────────────────────────────
           Expanded(
             child: sortedCourses.isEmpty
                 ? Center(
@@ -1032,14 +1518,15 @@ class _TicketCard extends StatelessWidget {
                       'No items ordered.',
                       style: TextStyle(
                         color: theme.colorScheme.outline,
-                        fontSize: 12,
+                        fontSize: 13,
+                        fontFamily: 'Hanken Grotesk',
                       ),
                     ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                      horizontal: 16,
+                      vertical: 8,
                     ),
                     itemCount: sortedCourses.length,
                     itemBuilder: (_, ci) {
@@ -1049,22 +1536,23 @@ class _TicketCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            padding: const EdgeInsets.only(top: 10, bottom: 8),
                             child: Row(
                               children: [
                                 Icon(
-                                  Icons.restaurant_menu,
-                                  size: 12,
+                                  Icons.restaurant_menu_rounded,
+                                  size: 14,
                                   color: theme.colorScheme.secondary,
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 6),
                                 Text(
                                   'COURSE $courseNum',
                                   style: TextStyle(
                                     fontFamily: 'JetBrains Mono',
                                     fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w800,
                                     color: theme.colorScheme.secondary,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
                               ],
@@ -1073,7 +1561,12 @@ class _TicketCard extends StatelessWidget {
                           ...items.map(
                             (item) => _ItemRow(ticket: ticket, item: item),
                           ),
-                          const Divider(height: 12),
+                          if (ci != sortedCourses.length - 1)
+                            Divider(
+                              height: 24,
+                              color: theme.colorScheme.outlineVariant
+                                  .withOpacity(0.4),
+                            ),
                         ],
                       );
                     },
@@ -1086,8 +1579,6 @@ class _TicketCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Individual Item Tracker Row with Context Menu Modifier
-// ─────────────────────────────────────────────────────────────────────────────
 class _ItemRow extends StatelessWidget {
   final Check ticket;
   final OrderItem item;
@@ -1098,32 +1589,48 @@ class _ItemRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = _itemStatusColor(context, item.status);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${item.quantity}x',
-            style: TextStyle(
-              fontFamily: 'JetBrains Mono',
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : Colors.black.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(6),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
             child: Text(
-              item.name,
+              '${item.quantity}x',
               style: TextStyle(
-                fontFamily: 'Hanken Grotesk',
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface,
+                fontFamily: 'JetBrains Mono',
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                item.name,
+                style: TextStyle(
+                  fontFamily: 'Hanken Grotesk',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           PopupMenuButton<OrderItemStatus>(
             onSelected: (newStatus) {
               final itemIndex = ticket.items.indexOf(item);
@@ -1133,6 +1640,12 @@ class _ItemRow extends StatelessWidget {
                 newStatus,
               );
             },
+            color: isDark
+                ? theme.colorScheme.surfaceContainerHigh
+                : theme.colorScheme.surfaceContainerLowest,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             itemBuilder: (context) => OrderItemStatus.values.map((s) {
               return PopupMenuItem(
                 value: s,
@@ -1146,12 +1659,13 @@ class _ItemRow extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Text(
                       s.displayName,
                       style: const TextStyle(
                         fontFamily: 'Hanken Grotesk',
-                        fontSize: 13,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -1159,11 +1673,10 @@ class _ItemRow extends StatelessWidget {
               );
             }).toList(),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: color.withOpacity(0.4), width: 1),
+                color: color.withOpacity(isDark ? 0.15 : 0.10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1172,13 +1685,17 @@ class _ItemRow extends StatelessWidget {
                     item.status.displayName,
                     style: TextStyle(
                       fontFamily: 'Hanken Grotesk',
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),
                   ),
-                  const SizedBox(width: 3),
-                  Icon(Icons.arrow_drop_down, size: 12, color: color),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 14,
+                    color: color,
+                  ),
                 ],
               ),
             ),
@@ -1189,8 +1706,6 @@ class _ItemRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty State Widget
 // ─────────────────────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   final String query;
@@ -1215,30 +1730,39 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            (query.isEmpty && selectedTable == null)
-                ? Icons.receipt_long_outlined
-                : Icons.search_off_rounded,
-            size: 44,
-            color: theme.colorScheme.outline,
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white.withOpacity(0.03)
+                  : Colors.black.withOpacity(0.03),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              (query.isEmpty && selectedTable == null)
+                  ? Icons.receipt_long_rounded
+                  : Icons.search_off_rounded,
+              size: 48,
+              color: theme.colorScheme.outline,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             mainMsg,
             style: TextStyle(
               fontFamily: 'Hanken Grotesk',
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,
             ),
           ),
           if (subMsg.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               subMsg,
               style: TextStyle(
                 fontFamily: 'Hanken Grotesk',
-                fontSize: 12,
+                fontSize: 13,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1246,22 +1770,5 @@ class _EmptyState extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  // Inside _CheckManagementScreenState
-  Widget _buildCoursePerformance(List<OrderItem> items) {
-    // Example: Find the earliest order time vs latest serve time for a course
-    final orderedTimes = items.map((i) => i.orderedAt).whereType<DateTime>();
-    final servedTimes = items.map((i) => i.servedAt).whereType<DateTime>();
-
-    if (orderedTimes.isEmpty || servedTimes.isEmpty)
-      return const SizedBox.shrink();
-
-    final start = orderedTimes.reduce((a, b) => a.isBefore(b) ? a : b);
-    final end = servedTimes.reduce((a, b) => a.isAfter(b) ? a : b);
-
-    final duration = end.difference(start);
-
-    return Text("Course prep time: ${duration.inMinutes} mins");
   }
 }

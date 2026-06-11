@@ -326,9 +326,6 @@ class POSProvider extends ChangeNotifier {
     if (check == null) return;
 
     check.items.add(item);
-    // FIX HERE: Using double literal 0.0 instead of int 0 to avoid type casting exception
-    check.subtotal = check.items.fold(0.0, (sum, i) => sum + i.total);
-    check.tax = check.subtotal * 0.085; // 8.5% tax
 
     // Update table bill amount
     final tableIdx = _tables.indexWhere((t) => t.number == check.tableNumber);
@@ -344,9 +341,6 @@ class POSProvider extends ChangeNotifier {
     if (check == null) return;
 
     check.items.removeWhere((i) => i.id == itemId);
-    // FIX HERE: Using double literal 0.0 instead of int 0
-    check.subtotal = check.items.fold(0.0, (sum, i) => sum + i.total);
-    check.tax = check.subtotal * 0.085;
 
     final tableIdx = _tables.indexWhere((t) => t.number == check.tableNumber);
     if (tableIdx != -1) {
@@ -717,11 +711,12 @@ class POSProvider extends ChangeNotifier {
     if (_checks.isNotEmpty) return;
 
     // Table 4 Mock State
+    final check4OpenedAt = DateTime.now().subtract(const Duration(minutes: 42));
     final check4 = Check(
       id: 'CHK-1001',
       tableNumber: 4,
       serverName: _currentUser?.name ?? 'Staff',
-      openedAt: DateTime.now().subtract(const Duration(minutes: 42)),
+      openedAt: check4OpenedAt,
       status: CheckStatus.open,
       covers: 2,
       items: [
@@ -731,6 +726,8 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 2,
           price: 32.00,
           status: OrderItemStatus.served,
+          orderedAt: check4OpenedAt.add(const Duration(minutes: 2)),
+          servedAt: check4OpenedAt.add(const Duration(minutes: 16)),
         ),
         OrderItem(
           name: 'Espresso Martini',
@@ -738,10 +735,10 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 3,
           price: 18.00,
           status: OrderItemStatus.served,
+          orderedAt: check4OpenedAt.add(const Duration(minutes: 4)),
+          servedAt: check4OpenedAt.add(const Duration(minutes: 8)),
         ),
       ],
-      subtotal: 100.00,
-      tax: 8.50,
     );
     _checks.add(check4);
     _tables[3] = _tables[3].copyWith(
@@ -751,14 +748,16 @@ class POSProvider extends ChangeNotifier {
       activeCheckId: 'CHK-1001',
       billAmount: check4.total,
       orders: check4.items,
+      seatedAt: check4OpenedAt,
     );
 
     // Table 5 Mock State
+    final check5OpenedAt = DateTime.now().subtract(const Duration(minutes: 15));
     final check5 = Check(
       id: 'CHK-1002',
       tableNumber: 5,
       serverName: _currentUser?.name ?? 'Staff',
-      openedAt: DateTime.now().subtract(const Duration(minutes: 15)),
+      openedAt: check5OpenedAt,
       status: CheckStatus.open,
       covers: 8,
       items: [
@@ -768,10 +767,9 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 1,
           price: 20.00,
           status: OrderItemStatus.preparing,
+          orderedAt: check5OpenedAt.add(const Duration(minutes: 2)),
         ),
       ],
-      subtotal: 40.00,
-      tax: 3.40,
     );
     _checks.add(check5);
     _tables[4] = _tables[4].copyWith(
@@ -781,14 +779,18 @@ class POSProvider extends ChangeNotifier {
       activeCheckId: 'CHK-1002',
       billAmount: check5.total,
       orders: check5.items,
+      seatedAt: check5OpenedAt,
     );
 
     // Table 7 Mock State
+    final check7OpenedAt = DateTime.now().subtract(
+      const Duration(hours: 1, minutes: 12),
+    );
     final check7 = Check(
       id: 'CHK-1003',
       tableNumber: 7,
       serverName: _currentUser?.name ?? 'Staff',
-      openedAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 12)),
+      openedAt: check7OpenedAt,
       status: CheckStatus.open,
       covers: 4,
       items: [
@@ -798,10 +800,10 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 2,
           price: 38.00,
           status: OrderItemStatus.served,
+          orderedAt: check7OpenedAt.add(const Duration(minutes: 3)),
+          servedAt: check7OpenedAt.add(const Duration(minutes: 18)),
         ),
       ],
-      subtotal: 114.00,
-      tax: 9.69,
     );
     _checks.add(check7);
     _tables[6] = _tables[6].copyWith(
@@ -811,14 +813,18 @@ class POSProvider extends ChangeNotifier {
       activeCheckId: 'CHK-1003',
       billAmount: check7.total,
       orders: check7.items,
+      seatedAt: check7OpenedAt,
     );
 
     // Table 12 Mock State (Ready For Bill)
+    final check12OpenedAt = DateTime.now().subtract(
+      const Duration(hours: 1, minutes: 45),
+    );
     final check12 = Check(
       id: 'CHK-1004',
       tableNumber: 12,
       serverName: _currentUser?.name ?? 'Staff',
-      openedAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 45)),
+      openedAt: check12OpenedAt,
       status: CheckStatus.open,
       covers: 6,
       items: [
@@ -828,6 +834,8 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 2,
           price: 28.00,
           status: OrderItemStatus.served,
+          orderedAt: check12OpenedAt.add(const Duration(minutes: 5)),
+          servedAt: check12OpenedAt.add(const Duration(minutes: 18)),
         ),
         OrderItem(
           name: 'House Red Wine (Glass)',
@@ -835,10 +843,10 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 1,
           price: 14.00,
           status: OrderItemStatus.served,
+          orderedAt: check12OpenedAt.add(const Duration(minutes: 2)),
+          servedAt: check12OpenedAt.add(const Duration(minutes: 5)),
         ),
       ],
-      subtotal: 196.00,
-      tax: 16.66,
     );
     _checks.add(check12);
     _tables[11] = _tables[11].copyWith(
@@ -849,14 +857,18 @@ class POSProvider extends ChangeNotifier {
       billAmount: check12.total,
       orders: check12.items,
       reservationTime: 'At 19:30',
+      seatedAt: check12OpenedAt,
     );
 
     // Table 15 Mock State (Ready For Bill)
+    final check15OpenedAt = DateTime.now().subtract(
+      const Duration(minutes: 55),
+    );
     final check15 = Check(
       id: 'CHK-1005',
       tableNumber: 15,
       serverName: _currentUser?.name ?? 'Staff',
-      openedAt: DateTime.now().subtract(const Duration(minutes: 55)),
+      openedAt: check15OpenedAt,
       status: CheckStatus.open,
       covers: 2,
       items: [
@@ -866,6 +878,8 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 1,
           price: 22.00,
           status: OrderItemStatus.served,
+          orderedAt: check15OpenedAt.add(const Duration(minutes: 3)),
+          servedAt: check15OpenedAt.add(const Duration(minutes: 11)),
         ),
         OrderItem(
           name: 'Chocolate Lava Cake',
@@ -873,10 +887,10 @@ class POSProvider extends ChangeNotifier {
           courseNumber: 3,
           price: 16.00,
           status: OrderItemStatus.served,
+          orderedAt: check15OpenedAt.add(const Duration(minutes: 35)),
+          servedAt: check15OpenedAt.add(const Duration(minutes: 46)),
         ),
       ],
-      subtotal: 76.00,
-      tax: 6.46,
     );
     _checks.add(check15);
     _tables[14] = _tables[14].copyWith(
@@ -887,7 +901,398 @@ class POSProvider extends ChangeNotifier {
       billAmount: check15.total,
       orders: check15.items,
       reservationTime: 'At 20:00',
+      seatedAt: check15OpenedAt,
     );
+
+    // ── Closed checks (historical — for analytics / tender / Z-report) ──
+
+    // Closed: Card payment, table 1
+    final closedAOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 3, minutes: 20),
+    );
+    final closedA = Check(
+      id: 'CHK-2001',
+      tableNumber: 1,
+      serverName: 'Sarah Johnson',
+      openedAt: closedAOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(hours: 2, minutes: 40)),
+      status: CheckStatus.closed,
+      covers: 4,
+      paymentMethod: 'Card',
+      tip: 28.00,
+      items: [
+        OrderItem(
+          name: 'Grilled Atlantic Salmon',
+          quantity: 2,
+          courseNumber: 2,
+          price: 38.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedAOpenedAt.add(const Duration(minutes: 2)),
+          servedAt: closedAOpenedAt.add(const Duration(minutes: 17)),
+        ),
+        OrderItem(
+          name: 'Caesar Salad',
+          quantity: 2,
+          courseNumber: 1,
+          price: 14.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedAOpenedAt.add(const Duration(minutes: 2)),
+          servedAt: closedAOpenedAt.add(const Duration(minutes: 9)),
+        ),
+        OrderItem(
+          name: 'House Red Wine (Glass)',
+          quantity: 4,
+          courseNumber: 1,
+          price: 14.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedAOpenedAt.add(const Duration(minutes: 1)),
+          servedAt: closedAOpenedAt.add(const Duration(minutes: 4)),
+        ),
+        OrderItem(
+          name: 'Chocolate Lava Cake',
+          quantity: 2,
+          courseNumber: 3,
+          price: 16.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedAOpenedAt.add(const Duration(minutes: 22)),
+          servedAt: closedAOpenedAt.add(const Duration(minutes: 33)),
+        ),
+      ],
+    );
+    _checks.add(closedA);
+
+    // Closed: Cash payment, table 2
+    final closedBOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 4, minutes: 10),
+    );
+    final closedB = Check(
+      id: 'CHK-2002',
+      tableNumber: 2,
+      serverName: 'James Wilson',
+      openedAt: closedBOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(hours: 3, minutes: 25)),
+      status: CheckStatus.closed,
+      covers: 2,
+      paymentMethod: 'Cash',
+      tip: 15.00,
+      items: [
+        OrderItem(
+          name: 'Wagyu Beef Burger',
+          quantity: 2,
+          courseNumber: 2,
+          price: 32.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedBOpenedAt.add(const Duration(minutes: 3)),
+          servedAt: closedBOpenedAt.add(const Duration(minutes: 18)),
+        ),
+        OrderItem(
+          name: 'Truffle Fries',
+          quantity: 2,
+          courseNumber: 2,
+          price: 12.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedBOpenedAt.add(const Duration(minutes: 3)),
+          servedAt: closedBOpenedAt.add(const Duration(minutes: 11)),
+        ),
+        OrderItem(
+          name: 'Espresso Martini',
+          quantity: 2,
+          courseNumber: 3,
+          price: 18.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedBOpenedAt.add(const Duration(minutes: 25)),
+          servedAt: closedBOpenedAt.add(const Duration(minutes: 30)),
+        ),
+      ],
+    );
+    _checks.add(closedB);
+
+    // Closed: Amex payment, table 3, with employee discount
+    final closedCOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 5, minutes: 0),
+    );
+    final closedC = Check(
+      id: 'CHK-2003',
+      tableNumber: 3,
+      serverName: 'Emily Davis',
+      openedAt: closedCOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(hours: 4, minutes: 15)),
+      status: CheckStatus.closed,
+      covers: 3,
+      paymentMethod: 'Amex',
+      discount: 20.00,
+      discountType: DiscountType.employeeDiscount,
+      tip: 20.00,
+      items: [
+        OrderItem(
+          name: 'Lobster Bisque',
+          quantity: 3,
+          courseNumber: 1,
+          price: 18.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedCOpenedAt.add(const Duration(minutes: 2)),
+          servedAt: closedCOpenedAt.add(const Duration(minutes: 10)),
+        ),
+        OrderItem(
+          name: 'Chicken Parmigiana',
+          quantity: 3,
+          courseNumber: 2,
+          price: 26.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedCOpenedAt.add(const Duration(minutes: 3)),
+          servedAt: closedCOpenedAt.add(const Duration(minutes: 17)),
+        ),
+        OrderItem(
+          name: 'Tiramisu',
+          quantity: 2,
+          courseNumber: 3,
+          price: 15.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedCOpenedAt.add(const Duration(minutes: 25)),
+          servedAt: closedCOpenedAt.add(const Duration(minutes: 36)),
+        ),
+        OrderItem(
+          name: 'Sparkling Water',
+          quantity: 3,
+          courseNumber: 1,
+          price: 6.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedCOpenedAt.add(const Duration(minutes: 2)),
+          servedAt: closedCOpenedAt.add(const Duration(minutes: 5)),
+        ),
+      ],
+    );
+    _checks.add(closedC);
+
+    // Closed: Card payment, table 6, with percent discount
+    final closedDOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 2, minutes: 45),
+    );
+    final closedD = Check(
+      id: 'CHK-2004',
+      tableNumber: 6,
+      serverName: 'Sarah Johnson',
+      openedAt: closedDOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(hours: 2, minutes: 0)),
+      status: CheckStatus.closed,
+      covers: 5,
+      paymentMethod: 'Card',
+      discount: 10.00,
+      discountType: DiscountType.percent,
+      tip: 35.00,
+      items: [
+        OrderItem(
+          name: 'Tuna Tartare',
+          quantity: 2,
+          courseNumber: 1,
+          price: 22.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedDOpenedAt.add(const Duration(minutes: 3)),
+          servedAt: closedDOpenedAt.add(const Duration(minutes: 11)),
+        ),
+        OrderItem(
+          name: 'Truffle Mushroom Risotto',
+          quantity: 3,
+          courseNumber: 2,
+          price: 28.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedDOpenedAt.add(const Duration(minutes: 3)),
+          servedAt: closedDOpenedAt.add(const Duration(minutes: 17)),
+        ),
+        OrderItem(
+          name: 'Margherita Pizza',
+          quantity: 2,
+          courseNumber: 2,
+          price: 20.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedDOpenedAt.add(const Duration(minutes: 4)),
+          servedAt: closedDOpenedAt.add(const Duration(minutes: 19)),
+        ),
+        OrderItem(
+          name: 'Craft Lager',
+          quantity: 5,
+          courseNumber: 1,
+          price: 10.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedDOpenedAt.add(const Duration(minutes: 2)),
+          servedAt: closedDOpenedAt.add(const Duration(minutes: 6)),
+        ),
+        OrderItem(
+          name: 'Crème Brûlée',
+          quantity: 3,
+          courseNumber: 3,
+          price: 14.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedDOpenedAt.add(const Duration(minutes: 26)),
+          servedAt: closedDOpenedAt.add(const Duration(minutes: 38)),
+        ),
+      ],
+    );
+    _checks.add(closedD);
+
+    // Closed: Cash payment, table 8
+    final closedEOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 1, minutes: 30),
+    );
+    final closedE = Check(
+      id: 'CHK-2005',
+      tableNumber: 8,
+      serverName: 'Mike Chen',
+      openedAt: closedEOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(minutes: 45)),
+      status: CheckStatus.closed,
+      covers: 2,
+      paymentMethod: 'Cash',
+      tip: 10.00,
+      items: [
+        OrderItem(
+          name: 'Bruschetta Trio',
+          quantity: 1,
+          courseNumber: 1,
+          price: 12.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedEOpenedAt.add(const Duration(minutes: 3)),
+          servedAt: closedEOpenedAt.add(const Duration(minutes: 11)),
+        ),
+        OrderItem(
+          name: 'Vegetable Pad Thai',
+          quantity: 2,
+          courseNumber: 2,
+          price: 22.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedEOpenedAt.add(const Duration(minutes: 3)),
+          servedAt: closedEOpenedAt.add(const Duration(minutes: 17)),
+        ),
+        OrderItem(
+          name: 'House Red Wine (Glass)',
+          quantity: 2,
+          courseNumber: 1,
+          price: 14.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedEOpenedAt.add(const Duration(minutes: 2)),
+          servedAt: closedEOpenedAt.add(const Duration(minutes: 5)),
+        ),
+      ],
+    );
+    _checks.add(closedE);
+
+    // Closed: Card payment, table 9
+    final closedFOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 6, minutes: 0),
+    );
+    final closedF = Check(
+      id: 'CHK-2006',
+      tableNumber: 9,
+      serverName: 'James Wilson',
+      openedAt: closedFOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(hours: 5, minutes: 10)),
+      status: CheckStatus.closed,
+      covers: 6,
+      paymentMethod: 'Card',
+      tip: 80.00,
+      items: [
+        OrderItem(
+          name: 'Caesar Salad',
+          quantity: 6,
+          courseNumber: 1,
+          price: 14.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedFOpenedAt.add(const Duration(minutes: 4)),
+          servedAt: closedFOpenedAt.add(const Duration(minutes: 12)),
+        ),
+        OrderItem(
+          name: 'Grilled Atlantic Salmon',
+          quantity: 3,
+          courseNumber: 2,
+          price: 38.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedFOpenedAt.add(const Duration(minutes: 4)),
+          servedAt: closedFOpenedAt.add(const Duration(minutes: 19)),
+        ),
+        OrderItem(
+          name: 'Wagyu Beef Burger',
+          quantity: 3,
+          courseNumber: 2,
+          price: 32.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedFOpenedAt.add(const Duration(minutes: 4)),
+          servedAt: closedFOpenedAt.add(const Duration(minutes: 18)),
+        ),
+        OrderItem(
+          name: 'Grilled Asparagus',
+          quantity: 4,
+          courseNumber: 2,
+          price: 10.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedFOpenedAt.add(const Duration(minutes: 4)),
+          servedAt: closedFOpenedAt.add(const Duration(minutes: 12)),
+        ),
+        OrderItem(
+          name: 'Espresso Martini',
+          quantity: 6,
+          courseNumber: 3,
+          price: 18.00,
+          status: OrderItemStatus.served,
+          orderedAt: closedFOpenedAt.add(const Duration(minutes: 28)),
+          servedAt: closedFOpenedAt.add(const Duration(minutes: 33)),
+        ),
+      ],
+    );
+    _checks.add(closedF);
+
+    // ── Voided checks ──────────────────────────────────────────────────────────
+
+    final voidedAOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 2, minutes: 10),
+    );
+    final voidedA = Check(
+      id: 'CHK-V001',
+      tableNumber: 10,
+      serverName: 'Emily Davis',
+      openedAt: voidedAOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(hours: 2, minutes: 5)),
+      status: CheckStatus.voided,
+      covers: 2,
+      voidReason: 'Customer walked out',
+      items: [
+        OrderItem(
+          name: 'Lobster Bisque',
+          quantity: 1,
+          courseNumber: 1,
+          price: 18.00,
+        ),
+        OrderItem(
+          name: 'Wagyu Beef Burger',
+          quantity: 2,
+          courseNumber: 2,
+          price: 32.00,
+        ),
+      ],
+    );
+    _checks.add(voidedA);
+
+    final voidedBOpenedAt = DateTime.now().subtract(
+      const Duration(hours: 3, minutes: 40),
+    );
+    final voidedB = Check(
+      id: 'CHK-V002',
+      tableNumber: 11,
+      serverName: 'Sarah Johnson',
+      openedAt: voidedBOpenedAt,
+      closedAt: DateTime.now().subtract(const Duration(hours: 3, minutes: 30)),
+      status: CheckStatus.voided,
+      covers: 1,
+      voidReason: 'Duplicate check created',
+      items: [
+        OrderItem(
+          name: 'Espresso Martini',
+          quantity: 1,
+          courseNumber: 1,
+          price: 18.00,
+        ),
+      ],
+    );
+    _checks.add(voidedB);
   }
 
   void updateItemStatus(String checkId, int itemIndex, OrderItemStatus status) {
@@ -1009,9 +1414,6 @@ class POSProvider extends ChangeNotifier {
           check.items.add(draftItem.copyWith());
         }
       }
-
-      check.subtotal = check.items.fold(0.0, (sum, i) => sum + i.total);
-      check.tax = check.subtotal * 0.085;
 
       final tIdx = _tables.indexWhere((t) => t.number == tableNumber);
       if (tIdx >= 0) {

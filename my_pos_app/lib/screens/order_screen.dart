@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart'; // Required for listEquals
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
+import 'package:my_pos_app/widgets/pos_background.dart';
 import 'order_summary_screen.dart';
 
 /// Categorization tags for shared service broadcasts
@@ -47,7 +49,7 @@ class OrderScreen extends StatefulWidget {
 
 class _OrderScreenState extends State<OrderScreen> {
   final List<OrderItem> _draftTicket = [];
-  int _coversCount = 1;
+  int _coversCount = 2; // Default to 2, avoids defaulting strictly to 1
   int _selectedCourse = 1;
   int _selectedSeat = 1;
   String _searchQuery = '';
@@ -325,7 +327,6 @@ class _OrderScreenState extends State<OrderScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // FIX: Wrapped tags inside Wrap widget to cleanly scale to mobile lines
                         Wrap(
                           spacing: 6.0,
                           runSpacing: 6.0,
@@ -428,6 +429,7 @@ class _OrderScreenState extends State<OrderScreen> {
     int? course,
     int? seat,
     List<String>? tags,
+    int? absoluteQuantity,
   }) {
     setState(() {
       final targetCourse = course ?? _selectedCourse;
@@ -443,24 +445,28 @@ class _OrderScreenState extends State<OrderScreen> {
       );
 
       if (existingIndex >= 0) {
-        final newQty = _draftTicket[existingIndex].quantity + delta;
+        final newQty =
+            absoluteQuantity ?? (_draftTicket[existingIndex].quantity + delta);
         if (newQty <= 0) {
           _draftTicket.removeAt(existingIndex);
         } else {
           _draftTicket[existingIndex].quantity = newQty;
         }
-      } else if (delta > 0) {
-        _draftTicket.add(
-          OrderItem(
-            name: itemName,
-            quantity: delta,
-            courseNumber: targetCourse,
-            seatNumber: targetSeat,
-            price: price,
-            status: OrderItemStatus.pending,
-            tags: targetTags,
-          ),
-        );
+      } else {
+        final initialQty = absoluteQuantity ?? delta;
+        if (initialQty > 0) {
+          _draftTicket.add(
+            OrderItem(
+              name: itemName,
+              quantity: initialQty,
+              courseNumber: targetCourse,
+              seatNumber: targetSeat,
+              price: price,
+              status: OrderItemStatus.pending,
+              tags: targetTags,
+            ),
+          );
+        }
       }
     });
   }
@@ -640,6 +646,14 @@ class _OrderScreenState extends State<OrderScreen> {
   /// Shows the full order ticket as a bottom sheet
   void _showOrderTicketSheet(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    // Vibrant Active Gradient
+    const primaryActiveGradient = LinearGradient(
+      colors: [Color(0xFFFF6F43), Color(0xFFE64A19)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -745,6 +759,12 @@ class _OrderScreenState extends State<OrderScreen> {
                                   Divider(height: 1, color: cs.outlineVariant),
                               itemBuilder: (context, idx) {
                                 final item = _draftTicket[idx];
+
+                                // Generate local controller instance tied directly to loop iteration metrics
+                                final qtyController = TextEditingController(
+                                  text: '${item.quantity}',
+                                );
+
                                 return ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 4,
@@ -771,26 +791,68 @@ class _OrderScreenState extends State<OrderScreen> {
                                         size: 18,
                                         color: cs.primary,
                                       ),
-                                      const SizedBox(width: 4),
+                                      const SizedBox(width: 8),
+
+                                      // Sleek Inline Direct-Edit Text Field Container
                                       Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
+                                        width: 44,
+                                        height: 28,
+                                        alignment: Alignment.center,
                                         decoration: BoxDecoration(
-                                          color: cs.primaryContainer,
+                                          color: cs.primaryContainer.withAlpha(
+                                            140,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             6,
                                           ),
                                         ),
-                                        child: Text(
-                                          'x${item.quantity}',
+                                        child: TextFormField(
+                                          controller: qtyController,
+                                          keyboardType: TextInputType.number,
+                                          textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontFamily: 'JetBrains Mono',
                                             color: cs.onPrimaryContainer,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 11,
+                                            fontSize: 12,
                                           ),
+                                          decoration: const InputDecoration(
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                            border: InputBorder.none,
+                                            prefixText: 'x',
+                                            prefixStyle: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.normal,
+                                            ),
+                                          ),
+                                          onTap: () {
+                                            // Auto-select text on tap for immediate overwriting
+                                            qtyController.selection =
+                                                TextSelection(
+                                                  baseOffset: 0,
+                                                  extentOffset:
+                                                      qtyController.text.length,
+                                                );
+                                          },
+                                          onChanged: (val) {
+                                            final parsed = int.tryParse(
+                                              val.trim(),
+                                            );
+                                            if (parsed != null) {
+                                              _updateItemQuantity(
+                                                item.name,
+                                                item.price,
+                                                0,
+                                                course: item.courseNumber,
+                                                seat: item.seatNumber,
+                                                tags: item.tags,
+                                                absoluteQuantity: parsed,
+                                              );
+                                              // Keeps sheet calculation references updated in real time
+                                              setSheetState(() {});
+                                            }
+                                          },
                                         ),
                                       ),
                                     ],
@@ -799,6 +861,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
+                                      const SizedBox(height: 2),
                                       Text(
                                         'Course ${item.courseNumber} — Seat ${item.seatNumber}',
                                         style: TextStyle(
@@ -924,42 +987,53 @@ class _OrderScreenState extends State<OrderScreen> {
                           const SizedBox(height: 14),
                           SizedBox(
                             width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: _draftTicket.isEmpty
-                                  ? null
-                                  : () {
-                                      Navigator.pop(context);
-                                      final p = context.read<POSProvider>();
-                                      p.dispatchOrderTicket(
-                                        tableNumber: widget.tableNumber,
-                                        covers: _coversCount,
-                                        items: _draftTicket,
-                                      );
-                                      final activeCheck = p.getCheckForTable(
-                                        widget.tableNumber,
-                                      );
-                                      if (activeCheck != null) {
-                                        Navigator.of(context).pushReplacement(
-                                          MaterialPageRoute(
-                                            builder: (_) => OrderSummaryScreen(
-                                              checkId: activeCheck.id,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                              icon: const Icon(Icons.send_rounded),
-                              label: const Text(
-                                'Send Order',
-                                style: TextStyle(
-                                  fontFamily: 'Hanken Grotesk',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: _draftTicket.isEmpty
+                                    ? null
+                                    : primaryActiveGradient,
+                                borderRadius: BorderRadius.circular(24),
                               ),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                              child: FilledButton.icon(
+                                onPressed: _draftTicket.isEmpty
+                                    ? null
+                                    : () {
+                                        Navigator.pop(context);
+                                        final p = context.read<POSProvider>();
+                                        p.dispatchOrderTicket(
+                                          tableNumber: widget.tableNumber,
+                                          covers: _coversCount,
+                                          items: _draftTicket,
+                                        );
+                                        final activeCheck = p.getCheckForTable(
+                                          widget.tableNumber,
+                                        );
+                                        if (activeCheck != null) {
+                                          Navigator.of(context).pushReplacement(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  OrderSummaryScreen(
+                                                    checkId: activeCheck.id,
+                                                  ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                icon: const Icon(Icons.send_rounded),
+                                label: const Text(
+                                  'Send Order',
+                                  style: TextStyle(
+                                    fontFamily: 'Hanken Grotesk',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                 ),
                               ),
                             ),
@@ -980,7 +1054,15 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<POSProvider>();
+
+    // Premium multi-toned active linear gradient state
+    const primaryActiveGradient = LinearGradient(
+      colors: [Color(0xFFFF6F43), Color(0xFFE64A19)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
 
     final filteredMenu = provider.fullMenu.where((item) {
       final matchesCategory =
@@ -991,101 +1073,111 @@ class _OrderScreenState extends State<OrderScreen> {
       return matchesCategory && matchesSearch;
     }).toList();
 
-    return Scaffold(
-      backgroundColor: cs.surface,
-      appBar: AppBar(
-        title: Text(
-          'Table ${widget.tableNumber} — New Order',
-          style: const TextStyle(
-            fontFamily: 'Hanken Grotesk',
-            fontWeight: FontWeight.bold,
+    // 1. Wrap the entire Scaffold inside POSBackground so it extends behind the App Bar
+    return POSBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          // 2. Clear out the surfaceTintColor layer to fix scrolling glitch artifacts
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            'Table ${widget.tableNumber} — New Order',
+            style: const TextStyle(
+              fontFamily: 'Hanken Grotesk',
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  _notifications.isNotEmpty
-                      ? Icons.notifications_active_rounded
-                      : Icons.notifications_none_rounded,
-                  color: _notifications.isNotEmpty
-                      ? cs.onTertiaryContainer
-                      : cs.onSurfaceVariant,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          actions: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _notifications.isNotEmpty
+                        ? Icons.notifications_active_rounded
+                        : Icons.notifications_none_rounded,
+                    color: _notifications.isNotEmpty
+                        ? cs.onTertiaryContainer
+                        : cs.onSurfaceVariant,
+                  ),
+                  onPressed: () => _showNotificationBoard(context),
                 ),
-                onPressed: () => _showNotificationBoard(context),
-              ),
-              if (_notifications.isNotEmpty)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: cs.error,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 14,
-                      minHeight: 14,
-                    ),
-                    child: Text(
-                      '${_notifications.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontFamily: 'JetBrains Mono',
-                        fontWeight: FontWeight.bold,
+                if (_notifications.isNotEmpty)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: cs.error,
+                        shape: BoxShape.circle,
                       ),
-                      textAlign: TextAlign.center,
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
+                      child: Text(
+                        '${_notifications.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontFamily: 'JetBrains Mono',
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      // Floating "View Order" button
-      floatingActionButton: _draftTicket.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _showOrderTicketSheet(context),
-              icon: const Icon(Icons.receipt_long_rounded),
-              label: Text(
-                'View Order  •  \$${_subtotal.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontFamily: 'Hanken Grotesk',
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 236, 239, 239),
-                  fontSize: 14,
-                ),
-              ),
+              ],
             ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      body: Column(
-        children: [
-          // ── Controls Bar: Covers / Course / Seat ──────────────────────
-          Container(
-            color: cs.surfaceContainer,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
+            const SizedBox(width: 12),
+          ],
+        ),
+        // 3. Keep standard Stack body directly without duplicate POSBackground wrappers
+        body: Stack(
+          children: [
+            Column(
               children: [
-                // COVERS
-                _buildControlChip(
-                  context: context,
-                  label: 'COVERS',
+                // ── UNIFIED CONTROLS PANEL ──
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    // Glass panel — white 72%, soft border, floating shadow
+                    color: isDark
+                        ? cs.surfaceContainer
+                        : Colors.white.withOpacity(0.72),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark
+                          ? cs.outlineVariant
+                          : Colors.white.withOpacity(0.60),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.15 : 0.06),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildSmallIconButton(
-                        icon: Icons.remove,
-                        onPressed: _coversCount > 1
+                      _buildStandardSelector(
+                        context: context,
+                        label: 'COVERS',
+                        value: '$_coversCount',
+                        onDecrement: _coversCount > 1
                             ? () => setState(() {
                                 _coversCount--;
                                 if (_selectedSeat > _coversCount) {
@@ -1093,271 +1185,319 @@ class _OrderScreenState extends State<OrderScreen> {
                                 }
                               })
                             : null,
-                        cs: cs,
+                        onIncrement: () => setState(() => _coversCount++),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$_coversCount',
-                        style: TextStyle(
-                          fontFamily: 'JetBrains Mono',
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: cs.onSurface,
-                        ),
+                      Container(width: 1, height: 32, color: cs.outlineVariant),
+                      _buildStandardSelector(
+                        context: context,
+                        label: 'COURSE',
+                        value: 'C$_selectedCourse',
+                        onDecrement: _selectedCourse > 1
+                            ? () => setState(() => _selectedCourse--)
+                            : null,
+                        onIncrement: () => setState(() => _selectedCourse++),
                       ),
-                      const SizedBox(width: 6),
-                      _buildSmallIconButton(
-                        icon: Icons.add,
-                        onPressed: () => setState(() => _coversCount++),
-                        cs: cs,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // COURSE
-                _buildControlChip(
-                  context: context,
-                  label: 'COURSE',
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [1, 2, 3].map((c) {
-                      final isSelected = _selectedCourse == c;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedCourse = c),
-                          child: Container(
-                            width: 30,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? cs.primary
-                                  : cs.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: isSelected
-                                    ? cs.primary
-                                    : cs.outlineVariant,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'C$c',
-                                style: TextStyle(
-                                  fontFamily: 'JetBrains Mono',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected
-                                      ? cs.onTertiaryContainer
-                                      : cs.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // SEAT
-                _buildControlChip(
-                  context: context,
-                  label: 'SEAT',
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildSmallIconButton(
-                        icon: Icons.chevron_left,
-                        onPressed: _selectedSeat > 1
+                      Container(width: 1, height: 32, color: cs.outlineVariant),
+                      _buildStandardSelector(
+                        context: context,
+                        label: 'SEAT',
+                        value: 'S$_selectedSeat',
+                        onDecrement: _selectedSeat > 1
                             ? () => setState(() => _selectedSeat--)
                             : null,
-                        cs: cs,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$_selectedSeat',
-                        style: TextStyle(
-                          fontFamily: 'JetBrains Mono',
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: cs.onTertiaryContainer,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildSmallIconButton(
-                        icon: Icons.chevron_right,
-                        onPressed: _selectedSeat < _coversCount
+                        onIncrement: _selectedSeat < _coversCount
                             ? () => setState(() => _selectedSeat++)
                             : null,
-                        cs: cs,
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
 
-          // ── Menu Area ─────────────────────────────────────────────────
-          Expanded(
-            child: Container(
-              color: cs.surfaceContainerLow,
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search bar
-                  TextField(
-                    onChanged: (value) => setState(() => _searchQuery = value),
-                    decoration: InputDecoration(
-                      hintText: 'Search menu items...',
-                      prefixIcon: const Icon(Icons.search),
-                      fillColor: cs.surfaceContainer,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Category tabs
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+                // ── Menu Area ─────────────────────────────────────────────────
+                Expanded(
+                  child: Container(
+                    // Transparent — gradient shows through from POSBackground
+                    color: Colors.transparent,
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTabButton(
-                          label: 'All Items',
-                          category: null,
-                          context: context,
-                        ),
-                        ...MenuCategory.values.map(
-                          (cat) => _buildTabButton(
-                            label: cat.displayName,
-                            category: cat,
-                            context: context,
+                        // Search bar — glass-tinted
+                        TextField(
+                          onChanged: (value) =>
+                              setState(() => _searchQuery = value),
+                          decoration: InputDecoration(
+                            hintText: 'Search menu items...',
+                            prefixIcon: const Icon(Icons.search),
+                            fillColor: isDark
+                                ? cs.surfaceContainer
+                                : Colors.white.withOpacity(0.72),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Category tabs
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildTabButton(
+                                label: 'All Items',
+                                category: null,
+                                context: context,
+                                primaryActiveGradient: primaryActiveGradient,
+                              ),
+                              ...MenuCategory.values.map(
+                                (cat) => _buildTabButton(
+                                  label: cat.displayName,
+                                  category: cat,
+                                  context: context,
+                                  primaryActiveGradient: primaryActiveGradient,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // ── Menu Grid ──────────────────────────────────────────
+                        Expanded(
+                          child: filteredMenu.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No items found matching your selection.',
+                                  ),
+                                )
+                              : GridView.builder(
+                                  padding: const EdgeInsets.only(bottom: 120),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        childAspectRatio: 1.25,
+                                        crossAxisSpacing: 12,
+                                        mainAxisSpacing: 12,
+                                      ),
+                                  itemCount: filteredMenu.length,
+                                  itemBuilder: (context, index) {
+                                    final menuItem = filteredMenu[index];
+
+                                    final activeSeatQty = _draftTicket
+                                        .where(
+                                          (i) =>
+                                              i.name == menuItem.name &&
+                                              i.courseNumber ==
+                                                  _selectedCourse &&
+                                              i.seatNumber == _selectedSeat,
+                                        )
+                                        .fold<int>(
+                                          0,
+                                          (prev, i) => prev + i.quantity,
+                                        );
+
+                                    final isActive = activeSeatQty > 0;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        // Glass card — white 72% or active-tinted
+                                        color: isDark
+                                            ? (isActive
+                                                  ? cs.primaryContainer
+                                                        .withOpacity(0.25)
+                                                  : cs.surfaceContainerHigh)
+                                            : (isActive
+                                                  ? const Color(
+                                                      0xFFFF6F43,
+                                                    ).withOpacity(0.10)
+                                                  : Colors.white.withOpacity(
+                                                      0.72,
+                                                    )),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isActive
+                                              ? (isDark
+                                                    ? cs.primary.withOpacity(
+                                                        0.6,
+                                                      )
+                                                    : const Color(
+                                                        0xFFFF6F43,
+                                                      ).withOpacity(0.55))
+                                              : (isDark
+                                                    ? cs.outlineVariant
+                                                    : Colors.white.withOpacity(
+                                                        0.60,
+                                                      )),
+                                          width: isActive ? 1.5 : 1.0,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: isActive
+                                                ? const Color(
+                                                    0xFFFF6F43,
+                                                  ).withOpacity(
+                                                    isDark ? 0.15 : 0.08,
+                                                  )
+                                                : Colors.black.withOpacity(
+                                                    isDark ? 0.15 : 0.05,
+                                                  ),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: InkWell(
+                                        onTap: () => _updateItemQuantity(
+                                          menuItem.name,
+                                          menuItem.price,
+                                          1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  menuItem.name,
+                                                  style: TextStyle(
+                                                    fontFamily:
+                                                        'Hanken Grotesk',
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        13, // Refined typography size to fit
+                                                    color: cs.onSurface,
+                                                    height: 1.2,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    '\$${menuItem.price.toStringAsFixed(2)}',
+                                                    style: TextStyle(
+                                                      fontFamily:
+                                                          'JetBrains Mono',
+                                                      color: cs
+                                                          .onSurface, // High contrast
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight
+                                                          .w900, // Bold price point for readability
+                                                    ),
+                                                  ),
+                                                  if (activeSeatQty > 0)
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 3,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            cs.primaryContainer,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        'x$activeSeatQty',
+                                                        style: TextStyle(
+                                                          fontFamily:
+                                                              'JetBrains Mono',
+                                                          color: cs
+                                                              .onPrimaryContainer,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // ── Menu Grid ──────────────────────────────────────────
-                  Expanded(
-                    child: filteredMenu.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No items found matching your selection.',
-                            ),
-                          )
-                        : GridView.builder(
-                            padding: const EdgeInsets.only(bottom: 90),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 1.5,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                ),
-                            itemCount: filteredMenu.length,
-                            itemBuilder: (context, index) {
-                              final menuItem = filteredMenu[index];
-
-                              final activeSeatQty = _draftTicket
-                                  .where(
-                                    (i) =>
-                                        i.name == menuItem.name &&
-                                        i.courseNumber == _selectedCourse &&
-                                        i.seatNumber == _selectedSeat,
-                                  )
-                                  .fold<int>(0, (prev, i) => prev + i.quantity);
-
-                              return InkWell(
-                                onTap: () => _updateItemQuantity(
-                                  menuItem.name,
-                                  menuItem.price,
-                                  1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: cs.surfaceContainerHigh,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: activeSeatQty > 0
-                                          ? cs.onTertiaryContainer
-                                          : cs.outlineVariant,
-                                      width: activeSeatQty > 0 ? 2 : 1,
-                                    ),
-                                  ),
-                                  padding: const EdgeInsets.all(14),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          menuItem.name,
-                                          style: TextStyle(
-                                            fontFamily: 'Hanken Grotesk',
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                            color: cs.onSurface,
-                                            height: 1.2,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '\$${menuItem.price.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontFamily: 'JetBrains Mono',
-                                              color: cs.onTertiaryContainer,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          if (activeSeatQty > 0)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 3,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: cs.primaryContainer,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                'x$activeSeatQty',
-                                                style: TextStyle(
-                                                  fontFamily: 'JetBrains Mono',
-                                                  color: cs.onPrimaryContainer,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
+
+            // ── FLOATING GLASSMORPHIC ACTION LAYER OVERLAY ──
+            if (_draftTicket.isNotEmpty)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ClipRRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      padding: const EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: 16,
+                        bottom: 32,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerLowest.withOpacity(0.6),
+                        border: Border(
+                          top: BorderSide(
+                            color: cs.outlineVariant.withOpacity(0.5),
+                          ),
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () => _showOrderTicketSheet(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: primaryActiveGradient,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE64A19).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              'View Order  •  \$${_subtotal.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontFamily: 'Hanken Grotesk',
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1369,11 +1509,11 @@ class _OrderScreenState extends State<OrderScreen> {
     required ColorScheme cs,
   }) {
     return SizedBox(
-      width: 28,
-      height: 28,
+      width: 26,
+      height: 26,
       child: Material(
         color: onPressed == null
-            ? cs.surfaceContainerHighest.withValues(alpha: 0.4)
+            ? cs.surfaceContainerHighest.withOpacity(0.4)
             : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
         child: InkWell(
@@ -1389,39 +1529,56 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
-  /// Labeled chip container used for the controls bar
-  Widget _buildControlChip({
+  /// Standardized consistent control layout for parameter settings
+  Widget _buildStandardSelector({
     required BuildContext context,
     required String label,
-    required Widget child,
+    required String value,
+    required VoidCallback? onDecrement,
+    required VoidCallback? onIncrement,
   }) {
     final cs = Theme.of(context).colorScheme;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: cs.outlineVariant),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'JetBrains Mono',
+            fontSize: 10,
+            color: cs.outline,
+            letterSpacing: 0.6,
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 6),
+        Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'JetBrains Mono',
-                fontSize: 9,
-                color: cs.outline,
-                letterSpacing: 0.6,
+            _buildSmallIconButton(
+              icon: Icons.remove,
+              onPressed: onDecrement,
+              cs: cs,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurface,
+                ),
               ),
             ),
-            const SizedBox(height: 6),
-            child,
+            _buildSmallIconButton(
+              icon: Icons.add,
+              onPressed: onIncrement,
+              cs: cs,
+            ),
           ],
         ),
-      ),
+      ],
     );
   }
 
@@ -1429,9 +1586,12 @@ class _OrderScreenState extends State<OrderScreen> {
     required String label,
     required MenuCategory? category,
     required BuildContext context,
+    required LinearGradient primaryActiveGradient,
   }) {
     final cs = Theme.of(context).colorScheme;
     final isSelected = _selectedCategory == category;
+    final isDarkBtn = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: InkWell(
@@ -1440,17 +1600,35 @@ class _OrderScreenState extends State<OrderScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? cs.primary : cs.surfaceContainerHigh,
+            gradient: isSelected ? primaryActiveGradient : null,
+            color: isSelected
+                ? null
+                : (isDarkBtn
+                      ? cs.surfaceContainerHigh
+                      : Colors.white.withOpacity(0.72)),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected ? Colors.transparent : cs.outlineVariant,
+              color: isSelected
+                  ? Colors.transparent
+                  : (isDarkBtn
+                        ? cs.outlineVariant
+                        : Colors.white.withOpacity(0.60)),
             ),
+            boxShadow: isSelected
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDarkBtn ? 0.12 : 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+                color: isSelected ? Colors.white : cs.onSurfaceVariant,
                 fontFamily: 'JetBrains Mono',
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

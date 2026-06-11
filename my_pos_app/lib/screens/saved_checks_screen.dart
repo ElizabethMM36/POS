@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
 import 'package:my_pos_app/screens/order_summary_screen.dart';
+// 1. ADD THIS IMPORT (Adjust the path if your file is in a different folder)
+import 'package:my_pos_app/widgets/pos_background.dart';
 
 /// The "Checks" tab — a timeline-style view of all check history,
 /// featuring status-driven KPI dashboard boxes, search, and historical filters.
@@ -47,14 +49,18 @@ class _SavedChecksScreenState extends State<SavedChecksScreen> {
     // Apply active search and category filters
     final filteredChecks = allChecks.where((check) {
       if (_filterStatus != 'All') {
-        if (_filterStatus == 'Open' && check.status != CheckStatus.open)
+        if (_filterStatus == 'Open' && check.status != CheckStatus.open) {
           return false;
-        if (_filterStatus == 'Saved' && check.status != CheckStatus.saved)
+        }
+        if (_filterStatus == 'Saved' && check.status != CheckStatus.saved) {
           return false;
-        if (_filterStatus == 'Closed' && check.status != CheckStatus.closed)
+        }
+        if (_filterStatus == 'Closed' && check.status != CheckStatus.closed) {
           return false;
-        if (_filterStatus == 'Voided' && check.status != CheckStatus.voided)
+        }
+        if (_filterStatus == 'Voided' && check.status != CheckStatus.voided) {
           return false;
+        }
       }
 
       if (_searchController.text.isNotEmpty) {
@@ -68,13 +74,15 @@ class _SavedChecksScreenState extends State<SavedChecksScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      // 2. MAKE SCAFFOLD TRANSPARENT so the mesh background shows through
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor ?? colors.surface,
+        // Make the AppBar transparent too so the top bloom gradient isn't cut off
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Command Center Logs',
+          'Check Logs',
           style: TextStyle(
             fontFamily: 'Hanken Grotesk',
             fontSize: 20,
@@ -83,183 +91,181 @@ class _SavedChecksScreenState extends State<SavedChecksScreen> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // 1. KPI Metric Dashboard Summary Boxes
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _KpiMetricCard(
-                    title: 'Active Open',
-                    value: '$openChecksCount',
-                    accentColor: const Color(
-                      0xFF22C55E,
-                    ), // Maintain open status green
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _KpiMetricCard(
-                    title: 'Saved Holds',
-                    value: '$savedChecksCount',
-                    accentColor: const Color(
-                      0xFFF97316,
-                    ), // Maintain hold orange
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _KpiMetricCard(
-                    title: 'Closed Sales',
-                    value: '\$${totalSalesRevenue.toStringAsFixed(0)}',
-                    accentColor: colors
-                        .primary, // Scales cleanly with light/dark primary token
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Search Bar Input Area
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: colors.surfaceContainer,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: colors.outlineVariant),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+      // 3. WRAP THE BODY IN POSBACKGROUND
+      body: POSBackground(
+        child: Column(
+          children: [
+            // 1. KPI Metric Dashboard Summary Boxes
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
               child: Row(
                 children: [
-                  Icon(Icons.search_rounded, size: 18, color: colors.outline),
+                  Expanded(
+                    child: _KpiMetricCard(
+                      title: 'Active Open',
+                      value: '$openChecksCount',
+                      accentColor: const Color(0xFF22C55E),
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (val) => setState(() {}),
-                      style: TextStyle(
-                        fontFamily: 'Hanken Grotesk',
-                        fontSize: 14,
-                        color: colors.onSurface,
+                    child: _KpiMetricCard(
+                      title: 'Saved Holds',
+                      value: '$savedChecksCount',
+                      accentColor: const Color(0xFFF97316),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _KpiMetricCard(
+                      title: 'Closed Sales',
+                      value: '\$${totalSalesRevenue.toStringAsFixed(0)}',
+                      accentColor: colors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Search Bar Input Area
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: colors.outlineVariant),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.search_rounded, size: 18, color: colors.outline),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) => setState(() {}),
+                        style: TextStyle(
+                          fontFamily: 'Hanken Grotesk',
+                          fontSize: 14,
+                          color: colors.onSurface,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Search table, check ID, or server...',
+                          hintStyle: TextStyle(
+                            fontFamily: 'Hanken Grotesk',
+                            fontSize: 14,
+                            color: colors.outline,
+                          ),
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Search table, check ID, or server...',
-                        hintStyle: TextStyle(
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                        child: Icon(
+                          Icons.clear_rounded,
+                          size: 18,
+                          color: colors.outline,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Horizontal Filter Row chips
+            SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: ['All', 'Open', 'Saved', 'Closed', 'Voided'].map((
+                  status,
+                ) {
+                  final isSelected = _filterStatus == status;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _FilterChip(
+                      label: status,
+                      isSelected: isSelected,
+                      onTap: () {
+                        setState(() {
+                          _filterStatus = status;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Historical Logs Timeline Feed
+            Expanded(
+              child: filteredChecks.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No matching checks found in current shift.',
+                        style: TextStyle(
                           fontFamily: 'Hanken Grotesk',
                           fontSize: 14,
                           color: colors.outline,
                         ),
-                        filled: false,
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
                       ),
-                    ),
-                  ),
-                  if (_searchController.text.isNotEmpty)
-                    GestureDetector(
-                      onTap: () {
-                        _searchController.clear();
-                        setState(() {});
-                      },
-                      child: Icon(
-                        Icons.clear_rounded,
-                        size: 18,
-                        color: colors.outline,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: filteredChecks.length,
+                      itemBuilder: (context, index) {
+                        final check = filteredChecks[index];
+                        final isLast = index == filteredChecks.length - 1;
 
-          // Horizontal Filter Row chips
-          SizedBox(
-            height: 36,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: ['All', 'Open', 'Saved', 'Closed', 'Voided'].map((
-                status,
-              ) {
-                final isSelected = _filterStatus == status;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _FilterChip(
-                    label: status,
-                    isSelected: isSelected,
-                    onTap: () {
-                      setState(() {
-                        _filterStatus = status;
-                      });
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Historical Logs Timeline Feed
-          Expanded(
-            child: filteredChecks.isEmpty
-                ? Center(
-                    child: Text(
-                      'No matching checks found in current shift.',
-                      style: TextStyle(
-                        fontFamily: 'Hanken Grotesk',
-                        fontSize: 14,
-                        color: colors.outline,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: filteredChecks.length,
-                    itemBuilder: (context, index) {
-                      final check = filteredChecks[index];
-                      final isLast = index == filteredChecks.length - 1;
-
-                      return IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _TimelineDivider(
-                              status: check.status,
-                              isLast: isLast,
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _CheckHistoryCard(
-                                  check: check,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => OrderSummaryScreen(
-                                          checkId: check.id,
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _TimelineDivider(
+                                status: check.status,
+                                isLast: isLast,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _CheckHistoryCard(
+                                    check: check,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => OrderSummaryScreen(
+                                            checkId: check.id,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

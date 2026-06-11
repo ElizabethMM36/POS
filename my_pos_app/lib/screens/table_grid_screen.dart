@@ -5,123 +5,12 @@ import 'package:my_pos_app/providers/pos_provider.dart';
 import 'package:my_pos_app/screens/order_screen.dart';
 import 'package:my_pos_app/screens/order_summary_screen.dart';
 import 'package:my_pos_app/theme/app_colors.dart';
+import 'package:my_pos_app/widgets/pos_background.dart';
 
-// ─── Design System Notes ─────────────────────────────────────────────────────
-//
-// LIGHT MODE — Dynamic Warm Orange Mesh + Glassmorphism
-//   Background: off-white warm cream #FDFDFD base
-//   Top-right bloom : soft brand orange at 10-12% opacity radial fade
-//   Bottom-left bloom: warm amber at 18-22% opacity radial fade
-//   Cards: white at 45-55% opacity, 1.5px white border at 65% opacity
-//   Shadow: ambient 24px blur, 3-5% opacity black/orange blend
-//
-// DARK MODE — unchanged from previous deep-navy mesh
-//
+// ─── Glass card decoration ────────────────────────────────────────────────────
+// Light: pure white 72% fill · 1px white border 60% · soft 20px ambient shadow
+// Dark : white 5% fill        · 1px white border 10% · deeper shadow
 // ─────────────────────────────────────────────────────────────────────────────
-
-// ── Orange palette constants (used directly in the painter & glass helpers) ──
-const Color _orangePrimary = Color(0xFFFF6D00); // brand orange
-const Color _amberAccent = Color(0xFFFFB300); // sunlit amber bloom
-const Color _warmCream = Color(0xFFFDFBF8); // off-white warm cream base
-
-// ─── Mesh Gradient Painter ───────────────────────────────────────────────────
-
-class _MeshGradientPainter extends CustomPainter {
-  final bool isDark;
-  const _MeshGradientPainter({required this.isDark});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // ── Base fill ──────────────────────────────────────────────────────────
-    final basePaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: isDark
-            ? [
-                const Color(0xFF0F1621),
-                const Color(0xFF131A24),
-                const Color(0xFF0D1B2A),
-              ]
-            : [
-                _warmCream, // off-white warm cream
-                const Color(0xFFFFF9F5), // warm pearl
-                const Color(0xFFFFFAF6), // barely-there peach white
-              ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
-
-    if (isDark) {
-      // ── Dark blobs (unchanged deep-navy mesh) ───────────────────────────
-      _drawBlob(
-        canvas,
-        center: Offset(size.width * 0.15, size.height * 0.18),
-        radius: size.width * 0.55,
-        innerColor: const Color(0xFF1E3A5F).withOpacity(0.55),
-      );
-      _drawBlob(
-        canvas,
-        center: Offset(size.width * 0.82, size.height * 0.42),
-        radius: size.width * 0.50,
-        innerColor: const Color(0xFF162840).withOpacity(0.60),
-      );
-      _drawBlob(
-        canvas,
-        center: Offset(size.width * 0.30, size.height * 0.80),
-        radius: size.width * 0.45,
-        innerColor: const Color(0xFF0E2233).withOpacity(0.50),
-      );
-    } else {
-      // ── Light orange blooms ─────────────────────────────────────────────
-      //
-      // Top-right: brand orange at 11% — airy, not muddy
-      _drawBlob(
-        canvas,
-        center: Offset(size.width * 0.88, size.height * 0.08),
-        radius: size.width * 0.65,
-        innerColor: _orangePrimary.withOpacity(0.11),
-      );
-
-      // Bottom-left: warm amber at 20% — creates organic depth
-      _drawBlob(
-        canvas,
-        center: Offset(size.width * 0.08, size.height * 0.90),
-        radius: size.width * 0.70,
-        innerColor: _amberAccent.withOpacity(0.20),
-      );
-
-      // Centre: ultra-soft peach whisper for mid-screen warmth
-      _drawBlob(
-        canvas,
-        center: Offset(size.width * 0.50, size.height * 0.50),
-        radius: size.width * 0.55,
-        innerColor: _orangePrimary.withOpacity(0.04),
-      );
-    }
-  }
-
-  void _drawBlob(
-    Canvas canvas, {
-    required Offset center,
-    required double radius,
-    required Color innerColor,
-  }) {
-    final paint = Paint()
-      ..shader = RadialGradient(
-        colors: [innerColor, Colors.transparent],
-        radius: 0.7,
-      ).createShader(Rect.fromCircle(center: center, radius: radius));
-    canvas.drawCircle(center, radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(_MeshGradientPainter old) => old.isDark != isDark;
-}
-
-// ── Glassmorphic card decoration ─────────────────────────────────────────────
-//  Light: white 50% fill · 1.5px white border at 65% · 24px ambient shadow
-//  Dark:  white 5% fill  · 1px  white border at 10% · 15px shadow
 BoxDecoration _glassDecoration({
   required bool isDark,
   double borderRadius = 16,
@@ -129,41 +18,26 @@ BoxDecoration _glassDecoration({
   return BoxDecoration(
     color: isDark
         ? Colors.white.withOpacity(0.05)
-        : Colors.white.withOpacity(0.50), // 45-55% frosted fill
+        : Colors.white.withOpacity(0.72),
     borderRadius: BorderRadius.circular(borderRadius),
     border: Border.all(
       color: isDark
           ? Colors.white.withOpacity(0.10)
-          : Colors.white.withOpacity(0.65), // crisp 65% white glass edge
-      width: isDark ? 1.0 : 1.5,
+          : Colors.white.withOpacity(0.60),
+      width: 1.0,
     ),
-    boxShadow: isDark
-        ? [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.22),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            ),
-          ]
-        : [
-            // Ambient weightless shadow: black 3% + orange 2% blend
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 24,
-              spreadRadius: 0,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: _orangePrimary.withOpacity(0.02),
-              blurRadius: 24,
-              spreadRadius: 0,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    boxShadow: [
+      BoxShadow(
+        color: isDark
+            ? Colors.black.withOpacity(0.22)
+            : Colors.black.withOpacity(0.06),
+        blurRadius: 20,
+        spreadRadius: 0,
+        offset: const Offset(0, 4),
+      ),
+    ],
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 class TableGridScreen extends StatefulWidget {
   const TableGridScreen({super.key});
@@ -192,6 +66,7 @@ class _TableGridScreenState extends State<TableGridScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
+
     _blinkAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
     );
@@ -214,7 +89,6 @@ class _TableGridScreenState extends State<TableGridScreen>
     }
   }
 
-  // ── Bottom sheet ────────────────────────────────────────────────────────────
   void _showTableSheet(BuildContext context, RestaurantTable table) {
     final provider = context.read<POSProvider>();
     final theme = Theme.of(context);
@@ -225,31 +99,26 @@ class _TableGridScreenState extends State<TableGridScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       showDragHandle: false,
       builder: (sheetContext) {
         final sheetTheme = Theme.of(sheetContext);
-        final sc = sheetTheme.colorScheme;
         return Container(
           decoration: BoxDecoration(
-            // Light: warm cream with high opacity — frosted panel rising from bloom
             color: isDark
                 ? const Color(0xFF141C26).withOpacity(0.96)
                 : Colors.white.withOpacity(0.88),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             border: Border.all(
               color: isDark
                   ? Colors.white.withOpacity(0.10)
-                  : Colors.white.withOpacity(0.65),
-              width: isDark ? 1.0 : 1.5,
+                  : Colors.white.withOpacity(0.6),
             ),
             boxShadow: [
               BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.40)
-                    : _orangePrimary.withOpacity(0.06),
-                blurRadius: 32,
+                color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+                blurRadius: 24,
                 offset: const Offset(0, -4),
               ),
             ],
@@ -272,7 +141,9 @@ class _TableGridScreenState extends State<TableGridScreen>
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: sc.outlineVariant.withOpacity(0.5),
+                      color: sheetTheme.colorScheme.outlineVariant.withOpacity(
+                        0.5,
+                      ),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -286,7 +157,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                         fontFamily: 'Hanken Grotesk',
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
-                        color: sc.onSurface,
+                        color: sheetTheme.colorScheme.onSurface,
                       ),
                     ),
                     Container(
@@ -295,9 +166,14 @@ class _TableGridScreenState extends State<TableGridScreen>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _statusColor(table.status).withOpacity(0.15),
+                        color: _statusColor(
+                          table.status,
+                        ).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(9999),
-                        border: Border.all(color: _statusColor(table.status)),
+                        border: Border.all(
+                          color: _statusColor(table.status),
+                          width: 1,
+                        ),
                       ),
                       child: Text(
                         table.status.displayName,
@@ -325,15 +201,11 @@ class _TableGridScreenState extends State<TableGridScreen>
                   _MetadataRow(
                     label: 'Accumulated Bill',
                     value: '\$${table.billAmount.toStringAsFixed(2)}',
-                    valueColor: sc.primary,
+                    valueColor: sheetTheme.colorScheme.primary,
                   ),
                 ],
                 const SizedBox(height: 12),
-                Divider(
-                  color: isDark
-                      ? sc.outlineVariant
-                      : Colors.white.withOpacity(0.30),
-                ),
+                Divider(color: sheetTheme.colorScheme.outlineVariant),
                 const SizedBox(height: 12),
                 Text(
                   table.orders.isEmpty
@@ -343,7 +215,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                     fontFamily: 'Hanken Grotesk',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: sc.onSurfaceVariant,
+                    color: sheetTheme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 if (table.orders.isNotEmpty) ...[
@@ -364,23 +236,13 @@ class _TableGridScreenState extends State<TableGridScreen>
                           decoration: BoxDecoration(
                             color: isDark
                                 ? Colors.white.withOpacity(0.06)
-                                : Colors.white.withOpacity(0.60),
+                                : Colors.white.withOpacity(0.65),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isDark
                                   ? Colors.white.withOpacity(0.09)
-                                  : Colors.white.withOpacity(0.65),
-                              width: isDark ? 1.0 : 1.5,
+                                  : Colors.white.withOpacity(0.5),
                             ),
-                            boxShadow: isDark
-                                ? []
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.03),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -393,7 +255,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                                     style: TextStyle(
                                       fontFamily: 'Hanken Grotesk',
                                       fontWeight: FontWeight.w600,
-                                      color: sc.onSurface,
+                                      color: sheetTheme.colorScheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -402,7 +264,9 @@ class _TableGridScreenState extends State<TableGridScreen>
                                     style: TextStyle(
                                       fontFamily: 'JetBrains Mono',
                                       fontSize: 12,
-                                      color: sc.onSurfaceVariant,
+                                      color: sheetTheme
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -412,7 +276,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                                 style: TextStyle(
                                   fontFamily: 'JetBrains Mono',
                                   fontWeight: FontWeight.bold,
-                                  color: sc.primary,
+                                  color: sheetTheme.colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -423,7 +287,6 @@ class _TableGridScreenState extends State<TableGridScreen>
                   ),
                 ],
                 const SizedBox(height: 24),
-                // Primary action — solid orange (light) / primaryContainer (dark)
                 FilledButton.icon(
                   onPressed: () {
                     Navigator.of(sheetContext).pop();
@@ -445,22 +308,16 @@ class _TableGridScreenState extends State<TableGridScreen>
                     style: const TextStyle(
                       fontFamily: 'Hanken Grotesk',
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Color(0xFFFFFFFF),
                     ),
                   ),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
-                    backgroundColor: isDark
-                        ? sc.primaryContainer
-                        : _orangePrimary, // solid radiant orange
-                    foregroundColor: Colors.white,
+                    backgroundColor: sheetTheme.colorScheme.primaryContainer,
+                    foregroundColor: sheetTheme.colorScheme.onPrimaryContainer,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: isDark ? 0 : 2,
-                    shadowColor: isDark
-                        ? Colors.transparent
-                        : _orangePrimary.withOpacity(0.30),
                   ),
                 ),
                 if (table.status == TableStatus.occupied ||
@@ -490,7 +347,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                       backgroundColor: StatusColors.available,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
@@ -511,22 +368,20 @@ class _TableGridScreenState extends State<TableGridScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Table ${table.number} cleared.'),
-                          backgroundColor: sc.surfaceContainerHigh,
+                          backgroundColor:
+                              sheetTheme.colorScheme.surfaceContainerHigh,
                         ),
                       );
                     },
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
-                      side: BorderSide(color: sc.error),
-                      foregroundColor: sc.error,
+                      side: BorderSide(color: sheetTheme.colorScheme.error),
+                      foregroundColor: sheetTheme.colorScheme.error,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Reset table status',
-                      style: TextStyle(fontFamily: 'Hanken Grotesk'),
-                    ),
+                    child: const Text('Reset table status'),
                   ),
                 ],
               ],
@@ -537,12 +392,9 @@ class _TableGridScreenState extends State<TableGridScreen>
     );
   }
 
-  // ── New-table dialog ─────────────────────────────────────────────────────────
   void _showNewTableCheckDialog(BuildContext context) {
     final provider = context.read<POSProvider>();
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final sc = theme.colorScheme;
     int? selectedTableNum;
     final availableTables = provider.tables
         .where((t) => t.status == TableStatus.available)
@@ -560,46 +412,29 @@ class _TableGridScreenState extends State<TableGridScreen>
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: isDark
-              ? sc.surfaceContainer
-              : Colors.white.withOpacity(0.95),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: isDark
-                  ? Colors.white.withOpacity(0.10)
-                  : Colors.white.withOpacity(0.65),
-              width: 1.5,
-            ),
-          ),
+          backgroundColor: theme.colorScheme.surfaceContainer,
           title: Text(
             'New Table Order',
             style: TextStyle(
               fontFamily: 'Hanken Grotesk',
               fontWeight: FontWeight.bold,
-              color: sc.onSurface,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           content: DropdownButtonFormField<int>(
-            dropdownColor: isDark
-                ? sc.surfaceContainerHigh
-                : const Color(0xFFFFF8F2),
+            dropdownColor: theme.colorScheme.surfaceContainerHigh,
             decoration: InputDecoration(
               labelText: 'Select Table Number',
-              labelStyle: TextStyle(color: sc.onSurfaceVariant),
+              labelStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: sc.outlineVariant),
+                borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: isDark ? sc.primary : _orangePrimary,
+                  color: theme.colorScheme.primary,
                   width: 2,
                 ),
               ),
-              filled: true,
-              fillColor: isDark ? sc.surfaceContainerLowest : Colors.white,
             ),
             items: availableTables
                 .map(
@@ -607,15 +442,14 @@ class _TableGridScreenState extends State<TableGridScreen>
                     value: tNum,
                     child: Text(
                       'Table $tNum',
-                      style: TextStyle(
-                        fontFamily: 'Hanken Grotesk',
-                        color: sc.onSurface,
-                      ),
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                     ),
                   ),
                 )
                 .toList(),
-            onChanged: (val) => selectedTableNum = val,
+            onChanged: (val) {
+              selectedTableNum = val;
+            },
           ),
           actions: [
             TextButton(
@@ -623,8 +457,7 @@ class _TableGridScreenState extends State<TableGridScreen>
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  fontFamily: 'Hanken Grotesk',
-                  color: isDark ? sc.primary : _orangePrimary,
+                  color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -642,16 +475,10 @@ class _TableGridScreenState extends State<TableGridScreen>
                 }
               },
               style: FilledButton.styleFrom(
-                backgroundColor: isDark ? sc.primary : _orangePrimary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
               ),
-              child: const Text(
-                'Create',
-                style: TextStyle(fontFamily: 'Hanken Grotesk'),
-              ),
+              child: const Text('Create'),
             ),
           ],
         );
@@ -659,7 +486,6 @@ class _TableGridScreenState extends State<TableGridScreen>
     );
   }
 
-  // ── Main build ───────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<POSProvider>();
@@ -674,6 +500,7 @@ class _TableGridScreenState extends State<TableGridScreen>
       );
     }
 
+    // 1. Filtered Tables Logic
     final filteredTables = provider.tables.where((table) {
       if (_selectedSection == 'All Sections') return true;
       if (_selectedSection == 'Main Dining Floor') return table.number <= 8;
@@ -686,224 +513,180 @@ class _TableGridScreenState extends State<TableGridScreen>
       return true;
     }).toList();
 
+    // 2. Count Available
     final int availCount = provider.tables
         .where((t) => t.status == TableStatus.available)
         .length;
 
-    final RestaurantTable? activeAlertTable = provider.tables
-        .cast<RestaurantTable?>()
-        .firstWhere(
-          (t) => t?.status == TableStatus.readyForBill,
-          orElse: () => provider.tables.cast<RestaurantTable?>().firstWhere(
-            (t) => t?.status == TableStatus.occupied,
-            orElse: () => null,
-          ),
+    // 3. RECTIFIED: Active Alert Logic
+    // We use firstWhereOrNull (from collection package) or a standard try/catch logic.
+    // Here is the cleanest way without extra packages:
+    RestaurantTable? getActiveTable() {
+      try {
+        return provider.tables.firstWhere(
+          (t) => t.status == TableStatus.readyForBill,
         );
+      } catch (_) {
+        try {
+          return provider.tables.firstWhere(
+            (t) => t.status == TableStatus.occupied,
+          );
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+
+    final RestaurantTable? activeAlertTable = getActiveTable();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // ── Layer 0: Warm orange mesh gradient ─────────────────────────
-          Positioned.fill(
-            child: CustomPaint(painter: _MeshGradientPainter(isDark: isDark)),
-          ),
-
-          // ── Layer 1: Content ────────────────────────────────────────────
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Section filter bar ──────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.black.withOpacity(0.25)
-                      : Colors.white.withOpacity(0.60),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.07)
-                          : Colors.white.withOpacity(0.50),
-                    ),
-                  ),
-                  boxShadow: isDark
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: _orangePrimary.withOpacity(0.03),
-                            blurRadius: 12,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _sections.map((section) {
-                      final isSelected = _selectedSection == section;
-                      String displayName = section;
-                      if (section == 'Main Dining Floor')
-                        displayName = 'Main Dining';
-                      if (section == 'Terrace & Rooftop Bar')
-                        displayName = 'Bar Area';
-                      if (section == 'Private Dining Room')
-                        displayName = 'Private Room';
-
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedSection = section),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOut,
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
-                          decoration: isSelected
-                              ? BoxDecoration(
-                                  // Selected: solid orange pill
-                                  color: isDark
-                                      ? colors.primary
-                                      : _orangePrimary,
-                                  borderRadius: BorderRadius.circular(9999),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          (isDark
-                                                  ? colors.primary
-                                                  : _orangePrimary)
-                                              .withOpacity(0.30),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                )
-                              : BoxDecoration(
-                                  // Unselected: glass pill with warm neutral border
-                                  color: isDark
-                                      ? Colors.white.withOpacity(0.07)
-                                      : Colors.white.withOpacity(0.65),
-                                  borderRadius: BorderRadius.circular(9999),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withOpacity(0.12)
-                                        : Colors.white.withOpacity(0.65),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.03),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                          child: Text(
-                            displayName,
-                            style: TextStyle(
-                              fontFamily: 'Hanken Grotesk',
-                              fontSize: 14,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? Colors.white
-                                  : colors.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+      body: POSBackground(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Section filter bar
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.black.withOpacity(0.25)
+                    : Colors.white.withOpacity(0.55),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.07)
+                        : Colors.white.withOpacity(0.5),
                   ),
                 ),
               ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _sections.map((section) {
+                    final isSelected = _selectedSection == section;
+                    String displayName = section;
+                    if (section == 'Main Dining Floor')
+                      displayName = 'Main Dining';
+                    if (section == 'Terrace & Rooftop Bar')
+                      displayName = 'Bar Area';
+                    if (section == 'Private Dining Room')
+                      displayName = 'Private Room';
 
-              // ── Scrollable body ─────────────────────────────────────────
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // ── Bento stats row ───────────────────────────────
-                      Row(
-                        children: [
-                          // Available tables count tile
-                          Expanded(
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedSection = section),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? colors.primary
+                              : (isDark
+                                    ? Colors.white.withOpacity(0.07)
+                                    : Colors.white.withOpacity(0.65)),
+                          borderRadius: BorderRadius.circular(9999),
+                          border: isSelected
+                              ? null
+                              : Border.all(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.12)
+                                      : Colors.white.withOpacity(0.55),
+                                ),
+                        ),
+                        child: Text(
+                          displayName,
+                          style: TextStyle(
+                            fontFamily: 'Hanken Grotesk',
+                            fontSize: 14,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? colors.onPrimary
+                                : colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        // Avail Box
+                        Expanded(
+                          child: Container(
+                            height: 100,
+                            decoration: _glassDecoration(isDark: isDark),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'AVAIL',
+                                  style: TextStyle(
+                                    fontFamily: 'JetBrains Mono',
+                                    fontSize: 12,
+                                    color: StatusColors.available,
+                                  ),
+                                ),
+                                Text(
+                                  availCount.toString().padLeft(2, '0'),
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Alert Box
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (activeAlertTable != null)
+                                _showTableSheet(context, activeAlertTable);
+                            },
                             child: Container(
                               height: 100,
                               decoration: _glassDecoration(isDark: isDark),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              child: Stack(
                                 children: [
-                                  Text(
-                                    'AVAIL',
-                                    style: TextStyle(
-                                      fontFamily: 'JetBrains Mono',
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: StatusColors.available,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    availCount.toString().padLeft(2, '0'),
-                                    style: TextStyle(
-                                      fontFamily: 'Hanken Grotesk',
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w800,
-                                      color: colors.onSurface,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-
-                          // Active alert bento tile
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                if (activeAlertTable != null) {
-                                  _showTableSheet(context, activeAlertTable);
-                                }
-                              },
-                              child: Container(
-                                height: 100,
-                                padding: const EdgeInsets.all(10),
-                                decoration: _glassDecoration(isDark: isDark),
-                                child: Stack(
-                                  children: [
-                                    // Ghost watermark number
-                                    Align(
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        activeAlertTable != null
-                                            ? activeAlertTable.number
-                                                  .toString()
-                                                  .padLeft(2, '0')
-                                            : '--',
-                                        style: TextStyle(
-                                          fontFamily: 'Hanken Grotesk',
-                                          fontSize: 64,
-                                          fontWeight: FontWeight.w800,
-                                          color: colors.onSurface.withOpacity(
-                                            0.05,
-                                          ),
-                                          height: 1,
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      activeAlertTable?.number
+                                              .toString()
+                                              .padLeft(2, '0') ??
+                                          '--',
+                                      style: TextStyle(
+                                        fontSize: 64,
+                                        fontWeight: FontWeight.w800,
+                                        // Fixed withOpacity for newer Flutter
+                                        color: colors.onSurface.withOpacity(
+                                          0.05,
                                         ),
                                       ),
                                     ),
-                                    Column(
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
@@ -913,272 +696,131 @@ class _TableGridScreenState extends State<TableGridScreen>
                                           children: [
                                             Text(
                                               activeAlertTable != null
-                                                  ? 'T-${activeAlertTable.number.toString().padLeft(2, '0')}'
+                                                  ? 'T-${activeAlertTable.number}'
                                                   : 'T--',
                                               style: TextStyle(
-                                                fontFamily: 'JetBrains Mono',
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
                                                 color:
                                                     activeAlertTable?.status ==
                                                         TableStatus.readyForBill
-                                                    ? const Color(0xFF8B5CF6)
+                                                    ? Colors.deepPurple
                                                     : StatusColors.occupied,
                                               ),
                                             ),
                                             if (activeAlertTable?.status ==
                                                 TableStatus.readyForBill)
-                                              AnimatedBuilder(
-                                                animation: _blinkAnimation,
-                                                builder: (context, child) {
-                                                  return Opacity(
-                                                    opacity:
-                                                        _blinkAnimation.value,
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 6,
-                                                            vertical: 1.5,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color:
-                                                            StatusColors.alert,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              4,
-                                                            ),
-                                                      ),
-                                                      child: const Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .receipt_rounded,
-                                                            size: 10,
-                                                            color:
-                                                                Color.fromARGB(
-                                                                  255,
-                                                                  255,
-                                                                  255,
-                                                                  255,
-                                                                ),
-                                                          ),
-                                                          SizedBox(width: 2),
-                                                          Text(
-                                                            'BILL',
-                                                            style: TextStyle(
-                                                              fontFamily:
-                                                                  'JetBrains Mono',
-                                                              fontSize: 9,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
+                                              const Icon(
+                                                Icons.receipt_rounded,
+                                                size: 16,
+                                                color: Colors.orange,
                                               ),
                                           ],
                                         ),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              activeAlertTable?.duration ??
-                                                  '--',
-                                              style: TextStyle(
-                                                fontFamily: 'JetBrains Mono',
-                                                fontSize: 11,
-                                                color: colors.onSurfaceVariant,
-                                              ),
-                                            ),
-                                            Text(
-                                              '\$${(activeAlertTable?.billAmount ?? 0.00).toStringAsFixed(2)}',
-                                              style: TextStyle(
-                                                fontFamily: 'JetBrains Mono',
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                                color: isDark
-                                                    ? colors.primary
-                                                    : _orangePrimary,
-                                              ),
-                                            ),
-                                          ],
+                                        Text(
+                                          '\$${(activeAlertTable?.billAmount ?? 0.0).toStringAsFixed(2)}',
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── Table grid ─────────────────────────────────────
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: 0.92,
-                            ),
-                        itemCount: filteredTables.length,
-                        itemBuilder: (context, index) {
-                          return _buildTableCard(
-                            context,
-                            filteredTables[index],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── Quick status legend ────────────────────────────
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: _glassDecoration(isDark: isDark),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'QUICK STATUS GUIDE',
-                              style: TextStyle(
-                                fontFamily: 'JetBrains Mono',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: colors.onSurfaceVariant,
-                                letterSpacing: 0.05,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _buildLegendItem(
-                                  context,
-                                  'Available',
-                                  StatusColors.available,
-                                ),
-                                _buildLegendItem(
-                                  context,
-                                  'Occupied',
-                                  StatusColors.occupied,
-                                ),
-                                _buildLegendItem(
-                                  context,
-                                  'Ready for Bill',
-                                  const Color(0xFF8B5CF6),
-                                ),
-                              ],
-                            ),
-                          ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.92,
+                          ),
+                      itemCount: filteredTables.length,
+                      itemBuilder: (context, index) =>
+                          _buildTableCard(context, filteredTables[index]),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        // Orange FAB in light mode, theme primary in dark
-        backgroundColor: isDark ? colors.primary : _orangePrimary,
-        foregroundColor: Colors.white,
+        backgroundColor: colors.primary,
         onPressed: () => _showNewTableCheckDialog(context),
-        elevation: isDark ? 4 : 6,
         child: const Icon(Icons.add_rounded),
       ),
     );
   }
 
-  // ── Table card ────────────────────────────────────────────────────────────
   Widget _buildTableCard(BuildContext context, RestaurantTable table) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colors = theme.colorScheme;
     final statusColor = _statusColor(table.status);
-    final isAvailable = table.status == TableStatus.available;
-    final shouldShowPrice = !isAvailable;
+    final shouldShowPrice = table.status != TableStatus.available;
 
     return InkWell(
       onTap: () => _showTableSheet(context, table),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          // Glass fill: lighter for available, warmer for busy
+          // Glass fill — lighter opacity for available, slightly more for busy
           color: isDark
-              ? Colors.white.withOpacity(isAvailable ? 0.04 : 0.07)
-              : Colors.white.withOpacity(isAvailable ? 0.50 : 0.62),
-          borderRadius: BorderRadius.circular(16),
-          // Glass edge: status-tinted for busy tables, white edge for available
+              ? Colors.white.withOpacity(
+                  table.status == TableStatus.available ? 0.04 : 0.07,
+                )
+              : Colors.white.withOpacity(
+                  table.status == TableStatus.available ? 0.65 : 0.75,
+                ),
+          borderRadius: BorderRadius.circular(14),
+          // Status-tinted border for occupied/bill tables, glass-edge for available
           border: Border.all(
-            color: isAvailable
+            color: table.status == TableStatus.available
                 ? (isDark
                       ? Colors.white.withOpacity(0.10)
-                      : Colors.white.withOpacity(0.65))
+                      : Colors.white.withOpacity(0.55))
                 : statusColor.withOpacity(isDark ? 0.55 : 0.45),
-            width: isAvailable ? 1.5 : 1.5,
+            width: table.status == TableStatus.available ? 1.0 : 1.5,
           ),
-          // Ambient floating shadow
-          boxShadow: isAvailable
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.18 : 0.03),
-                    blurRadius: 24,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 8),
-                  ),
-                  if (!isDark)
-                    BoxShadow(
-                      color: _orangePrimary.withOpacity(0.02),
-                      blurRadius: 24,
-                      offset: const Offset(0, 4),
-                    ),
-                ]
-              : [
-                  BoxShadow(
-                    color: statusColor.withOpacity(isDark ? 0.15 : 0.08),
-                    blurRadius: 20,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+          // Soft floating shadow
+          boxShadow: [
+            BoxShadow(
+              color: table.status == TableStatus.available
+                  ? Colors.black.withOpacity(isDark ? 0.18 : 0.04)
+                  : statusColor.withOpacity(isDark ? 0.15 : 0.08),
+              blurRadius: 15,
+              spreadRadius: 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Glowing status dot
+            // Status dot
             Container(
-              width: 7,
-              height: 7,
+              width: 6,
+              height: 6,
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
                 color: statusColor,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: statusColor.withOpacity(0.55),
-                    blurRadius: 5,
+                    color: statusColor.withOpacity(0.5),
+                    blurRadius: 4,
                     spreadRadius: 1,
                   ),
                 ],
               ),
             ),
-            // Table number
             Text(
               '${table.number}',
               style: TextStyle(
@@ -1189,7 +831,6 @@ class _TableGridScreenState extends State<TableGridScreen>
               ),
             ),
             const SizedBox(height: 4),
-            // Covers
             Text(
               table.covers > 0 ? '${table.covers} Pax' : 'Vacant',
               style: TextStyle(
@@ -1198,8 +839,9 @@ class _TableGridScreenState extends State<TableGridScreen>
                 color: colors.onSurfaceVariant,
               ),
             ),
-            // Duration (occupied/bill tables)
-            if (shouldShowPrice && table.duration.isNotEmpty)
+
+            // 👈 NEW: Display the live duration under the Covers text
+            if (shouldShowPrice && table.duration.isNotEmpty) ...[
               Text(
                 table.duration,
                 style: TextStyle(
@@ -1208,7 +850,8 @@ class _TableGridScreenState extends State<TableGridScreen>
                   color: colors.onSurfaceVariant,
                 ),
               ),
-            // Bill amount
+            ],
+
             if (shouldShowPrice) ...[
               const SizedBox(height: 6),
               Text(
@@ -1217,7 +860,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                   fontFamily: 'JetBrains Mono',
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? colors.primary : _orangePrimary,
+                  color: colors.primary,
                 ),
               ),
             ],
@@ -1227,7 +870,6 @@ class _TableGridScreenState extends State<TableGridScreen>
     );
   }
 
-  // ── Legend dot + label ────────────────────────────────────────────────────
   Widget _buildLegendItem(BuildContext context, String label, Color color) {
     final theme = Theme.of(context);
     return Row(
@@ -1240,7 +882,7 @@ class _TableGridScreenState extends State<TableGridScreen>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.45),
+                color: color.withOpacity(0.4),
                 blurRadius: 4,
                 spreadRadius: 1,
               ),
@@ -1261,7 +903,6 @@ class _TableGridScreenState extends State<TableGridScreen>
   }
 }
 
-// ── Metadata row (bottom sheet) ───────────────────────────────────────────────
 class _MetadataRow extends StatelessWidget {
   final String label;
   final String value;
@@ -1276,7 +917,6 @@ class _MetadataRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1294,14 +934,31 @@ class _MetadataRow extends StatelessWidget {
             fontFamily: 'JetBrains Mono',
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color:
-                valueColor ??
-                (isDark
-                    ? theme.colorScheme.onSurface
-                    : const Color(0xFF1E2022)),
+            color: valueColor ?? theme.colorScheme.onSurface,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLightGlassCard({required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        // Frosted white fill with high transparency
+        color: Colors.white.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(16),
+        // Sharp, micro-thin bright white border to catch the edge light
+        border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.5),
+        // Ambient shadow to separate the card from the gradient blooms underneath
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(borderRadius: BorderRadius.circular(16), child: child),
     );
   }
 }

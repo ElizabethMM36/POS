@@ -258,8 +258,6 @@ class Check {
     this.status = CheckStatus.open,
     this.covers = 1,
     List<OrderItem>? items,
-    this.subtotal = 0.0,
-    this.tax = 0.0,
     this.tip = 0.0,
     this.discount = 0.0,
     this.discountType,
@@ -276,8 +274,10 @@ class Check {
   CheckStatus status;
   int covers;
   final List<OrderItem> items;
-  double subtotal;
-  double tax;
+  
+  double get subtotal => items.fold(0.0, (sum, i) => sum + i.total);
+  double get tax => subtotal * 0.085;
+  
   double tip;
   double discount;
 
@@ -285,7 +285,7 @@ class Check {
   double percent;
   String paymentMethod;
   String voidReason;
-  get total => subtotal + tax + tip - discount;
+  double get total => subtotal + tax + tip - discount;
   double get discountCalculated {
     // Use ?? 0.0 to handle potential nulls if subtotal isn't initialized yet
     final currentSubtotal = subtotal ?? 0.0;
