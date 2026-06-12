@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart'; // Required for listEquals
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:my_pos_app/models/pos_models.dart';
 import 'package:my_pos_app/providers/pos_provider.dart';
@@ -54,6 +55,8 @@ class _OrderScreenState extends State<OrderScreen> {
   int _selectedSeat = 1;
   String _searchQuery = '';
   MenuCategory? _selectedCategory;
+  // Grid (false) vs List (true) toggle — servers can switch layout
+  bool _listViewMode = false;
 
   // Track live active floor reminders or promotions with structured tags
   final List<ServerNotification> _notifications = [
@@ -99,6 +102,7 @@ class _OrderScreenState extends State<OrderScreen> {
   /// Displays the interactive Server Reminders Board directly in the middle of the screen
   void _showNotificationBoard(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final mediaQuery = MediaQuery.of(context);
     final noteController = TextEditingController();
     NotificationTag selectedCreationTag = NotificationTag.serverNote;
@@ -113,7 +117,6 @@ class _OrderScreenState extends State<OrderScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              // Use standard adaptive inset paddings to prevent emulator clipping
               insetPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 24,
@@ -123,7 +126,6 @@ class _OrderScreenState extends State<OrderScreen> {
                 duration: const Duration(milliseconds: 100),
                 curve: Curves.decelerate,
                 child: Container(
-                  // Set a clear maximum width for desktop but allow complete shrinking on mobile
                   constraints: const BoxConstraints(maxWidth: 500),
                   padding: const EdgeInsets.all(20),
                   child: SingleChildScrollView(
@@ -170,16 +172,17 @@ class _OrderScreenState extends State<OrderScreen> {
                           'Active updates visible across terminal nodes',
                           style: TextStyle(
                             fontFamily: 'Hanken Grotesk',
-                            color: cs.outline,
+                            color: isDark ? Colors.white : cs.outline,
+                            fontWeight: isDark
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             fontSize: 12,
                           ),
                         ),
                         const Divider(height: 24),
 
-                        // Active entries log area
                         ConstrainedBox(
                           constraints: BoxConstraints(
-                            // Dynamically downscale max height if screen space is compromised
                             maxHeight: mediaQuery.viewInsets.bottom > 0
                                 ? 120
                                 : 220,
@@ -193,7 +196,12 @@ class _OrderScreenState extends State<OrderScreen> {
                                     child: Text(
                                       'No active broadcast tags configured.',
                                       style: TextStyle(
-                                        color: cs.outline,
+                                        color: isDark
+                                            ? Colors.white
+                                            : cs.outline,
+                                        fontWeight: isDark
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                         fontFamily: 'Hanken Grotesk',
                                         fontSize: 13,
                                       ),
@@ -273,7 +281,12 @@ class _OrderScreenState extends State<OrderScreen> {
                                                         fontFamily:
                                                             'JetBrains Mono',
                                                         fontSize: 10,
-                                                        color: cs.outline,
+                                                        color: isDark
+                                                            ? Colors.white
+                                                            : cs.outline,
+                                                        fontWeight: isDark
+                                                            ? FontWeight.bold
+                                                            : FontWeight.normal,
                                                       ),
                                                     ),
                                                   ],
@@ -285,7 +298,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                                     fontFamily:
                                                         'Hanken Grotesk',
                                                     fontSize: 13,
-                                                    fontWeight: FontWeight.w500,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
                                               ],
@@ -321,7 +334,7 @@ class _OrderScreenState extends State<OrderScreen> {
                           style: TextStyle(
                             fontFamily: 'JetBrains Mono',
                             fontSize: 11,
-                            color: cs.primary,
+                            color: isDark ? Colors.white : cs.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -345,9 +358,8 @@ class _OrderScreenState extends State<OrderScreen> {
                               labelStyle: TextStyle(
                                 fontFamily: 'Hanken Grotesk',
                                 fontSize: 11,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : null,
                               ),
                             );
                           }).toList(),
@@ -368,7 +380,10 @@ class _OrderScreenState extends State<OrderScreen> {
                                     vertical: 10,
                                   ),
                                   hintStyle: TextStyle(
-                                    color: cs.outline,
+                                    color: isDark ? Colors.white : cs.outline,
+                                    fontWeight: isDark
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                     fontSize: 13,
                                   ),
                                   border: OutlineInputBorder(
@@ -379,6 +394,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                 style: const TextStyle(
                                   fontFamily: 'Hanken Grotesk',
                                   fontSize: 13,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
@@ -474,6 +490,7 @@ class _OrderScreenState extends State<OrderScreen> {
   /// Displays an option menu/dialog to modify tags, allergies, and substitutions
   void _showItemCustomizationSheet(OrderItem item) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final textController = TextEditingController(
       text: item.tags.firstWhere((t) => !t.startsWith('⚠️ '), orElse: () => ''),
     );
@@ -525,7 +542,8 @@ class _OrderScreenState extends State<OrderScreen> {
                     'Course ${item.courseNumber} — Seat ${item.seatNumber}',
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
-                      color: cs.outline,
+                      color: isDark ? Colors.white : cs.outline,
+                      fontWeight: isDark ? FontWeight.bold : FontWeight.normal,
                       fontSize: 12,
                     ),
                   ),
@@ -554,9 +572,10 @@ class _OrderScreenState extends State<OrderScreen> {
                         labelStyle: TextStyle(
                           fontFamily: 'Hanken Grotesk',
                           fontSize: 12,
+                          fontWeight: FontWeight.bold,
                           color: isSelected
                               ? cs.onErrorContainer
-                              : cs.onSurface,
+                              : (isDark ? Colors.white : cs.onSurface),
                         ),
                         onSelected: (bool selected) {
                           setModalState(() {
@@ -577,7 +596,8 @@ class _OrderScreenState extends State<OrderScreen> {
                     style: TextStyle(
                       fontFamily: 'JetBrains Mono',
                       fontSize: 11,
-                      color: cs.outline,
+                      color: isDark ? Colors.white : cs.outline,
+                      fontWeight: isDark ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -587,11 +607,18 @@ class _OrderScreenState extends State<OrderScreen> {
                       hintText:
                           'e.g., Sub fries for side salad, sauce on side...',
                       fillColor: cs.surfaceContainerLow,
-                      hintStyle: TextStyle(color: cs.outline, fontSize: 13),
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white : cs.outline,
+                        fontSize: 13,
+                        fontWeight: isDark
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
                     ),
                     style: const TextStyle(
                       fontFamily: 'Hanken Grotesk',
                       fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
                     maxLines: 2,
                   ),
@@ -604,7 +631,12 @@ class _OrderScreenState extends State<OrderScreen> {
                         onPressed: () => Navigator.pop(context),
                         child: Text(
                           'Cancel',
-                          style: TextStyle(color: cs.outline),
+                          style: TextStyle(
+                            color: isDark ? Colors.white : cs.outline,
+                            fontWeight: isDark
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -626,7 +658,10 @@ class _OrderScreenState extends State<OrderScreen> {
                         ),
                         child: const Text(
                           'Apply Changes',
-                          style: TextStyle(fontFamily: 'Hanken Grotesk'),
+                          style: TextStyle(
+                            fontFamily: 'Hanken Grotesk',
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -646,6 +681,7 @@ class _OrderScreenState extends State<OrderScreen> {
   /// Shows the full order ticket as a bottom sheet
   void _showOrderTicketSheet(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Vibrant Active Gradient
     const primaryActiveGradient = LinearGradient(
@@ -704,7 +740,10 @@ class _OrderScreenState extends State<OrderScreen> {
                             style: TextStyle(
                               fontFamily: 'JetBrains Mono',
                               fontSize: 12,
-                              color: cs.outline,
+                              color: isDark ? Colors.white : cs.outline,
+                              fontWeight: isDark
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -725,14 +764,19 @@ class _OrderScreenState extends State<OrderScreen> {
                                   Icon(
                                     Icons.receipt_long_outlined,
                                     size: 48,
-                                    color: cs.outlineVariant,
+                                    color: isDark
+                                        ? Colors.white
+                                        : cs.outlineVariant,
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
                                     'No items added yet',
                                     style: TextStyle(
                                       fontFamily: 'Hanken Grotesk',
-                                      color: cs.outline,
+                                      color: isDark ? Colors.white : cs.outline,
+                                      fontWeight: isDark
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
                                       fontSize: 15,
                                     ),
                                   ),
@@ -741,7 +785,12 @@ class _OrderScreenState extends State<OrderScreen> {
                                     'Tap menu items to add them here',
                                     style: TextStyle(
                                       fontFamily: 'Hanken Grotesk',
-                                      color: cs.outlineVariant,
+                                      color: isDark
+                                          ? Colors.white
+                                          : cs.outlineVariant,
+                                      fontWeight: isDark
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
                                       fontSize: 13,
                                     ),
                                   ),
@@ -759,11 +808,6 @@ class _OrderScreenState extends State<OrderScreen> {
                                   Divider(height: 1, color: cs.outlineVariant),
                               itemBuilder: (context, idx) {
                                 final item = _draftTicket[idx];
-
-                                // Generate local controller instance tied directly to loop iteration metrics
-                                final qtyController = TextEditingController(
-                                  text: '${item.quantity}',
-                                );
 
                                 return ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
@@ -792,67 +836,28 @@ class _OrderScreenState extends State<OrderScreen> {
                                         color: cs.primary,
                                       ),
                                       const SizedBox(width: 8),
-
-                                      // Sleek Inline Direct-Edit Text Field Container
+                                      // Read-only qty badge
                                       Container(
-                                        width: 44,
-                                        height: 28,
-                                        alignment: Alignment.center,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 5,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: cs.primaryContainer.withAlpha(
-                                            140,
+                                            160,
                                           ),
                                           borderRadius: BorderRadius.circular(
-                                            6,
+                                            8,
                                           ),
                                         ),
-                                        child: TextFormField(
-                                          controller: qtyController,
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
+                                        child: Text(
+                                          'x${item.quantity}',
                                           style: TextStyle(
                                             fontFamily: 'JetBrains Mono',
                                             color: cs.onPrimaryContainer,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 12,
+                                            fontSize: 13,
                                           ),
-                                          decoration: const InputDecoration(
-                                            isDense: true,
-                                            contentPadding: EdgeInsets.zero,
-                                            border: InputBorder.none,
-                                            prefixText: 'x',
-                                            prefixStyle: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.normal,
-                                            ),
-                                          ),
-                                          onTap: () {
-                                            // Auto-select text on tap for immediate overwriting
-                                            qtyController.selection =
-                                                TextSelection(
-                                                  baseOffset: 0,
-                                                  extentOffset:
-                                                      qtyController.text.length,
-                                                );
-                                          },
-                                          onChanged: (val) {
-                                            final parsed = int.tryParse(
-                                              val.trim(),
-                                            );
-                                            if (parsed != null) {
-                                              _updateItemQuantity(
-                                                item.name,
-                                                item.price,
-                                                0,
-                                                course: item.courseNumber,
-                                                seat: item.seatNumber,
-                                                tags: item.tags,
-                                                absoluteQuantity: parsed,
-                                              );
-                                              // Keeps sheet calculation references updated in real time
-                                              setSheetState(() {});
-                                            }
-                                          },
                                         ),
                                       ),
                                     ],
@@ -867,7 +872,12 @@ class _OrderScreenState extends State<OrderScreen> {
                                         style: TextStyle(
                                           fontFamily: 'JetBrains Mono',
                                           fontSize: 11,
-                                          color: cs.outline,
+                                          color: isDark
+                                              ? Colors.white
+                                              : cs.outline,
+                                          fontWeight: isDark
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
                                         ),
                                       ),
                                       if (item.tags.isNotEmpty) ...[
@@ -920,19 +930,17 @@ class _OrderScreenState extends State<OrderScreen> {
                                     children: [
                                       Text(
                                         '\$${item.total.toStringAsFixed(2)}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontFamily: 'JetBrains Mono',
                                           fontWeight: FontWeight.bold,
+                                          color: cs.onSurface,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.remove_circle_outline,
-                                          color: cs.error,
-                                          size: 18,
-                                        ),
-                                        onPressed: () {
+                                      const SizedBox(width: 6),
+                                      // − button
+                                      GestureDetector(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
                                           _updateItemQuantity(
                                             item.name,
                                             item.price,
@@ -943,6 +951,53 @@ class _OrderScreenState extends State<OrderScreen> {
                                           );
                                           setSheetState(() {});
                                         },
+                                        child: Container(
+                                          width: 30,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            color: cs.errorContainer
+                                                .withOpacity(0.25),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.remove,
+                                            size: 16,
+                                            color: cs.error,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      // + button
+                                      GestureDetector(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          _updateItemQuantity(
+                                            item.name,
+                                            item.price,
+                                            1,
+                                            course: item.courseNumber,
+                                            seat: item.seatNumber,
+                                            tags: item.tags,
+                                          );
+                                          setSheetState(() {});
+                                        },
+                                        child: Container(
+                                          width: 30,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            color: cs.primary.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.add,
+                                            size: 16,
+                                            color: cs.primary,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -969,7 +1024,10 @@ class _OrderScreenState extends State<OrderScreen> {
                                 'Subtotal',
                                 style: TextStyle(
                                   fontFamily: 'Hanken Grotesk',
-                                  color: cs.outline,
+                                  color: isDark ? Colors.white : cs.outline,
+                                  fontWeight: isDark
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                   fontSize: 14,
                                 ),
                               ),
@@ -1104,7 +1162,7 @@ class _OrderScreenState extends State<OrderScreen> {
                         : Icons.notifications_none_rounded,
                     color: _notifications.isNotEmpty
                         ? cs.onTertiaryContainer
-                        : cs.onSurfaceVariant,
+                        : (isDark ? Colors.white : cs.onSurfaceVariant),
                   ),
                   onPressed: () => _showNotificationBoard(context),
                 ),
@@ -1173,8 +1231,9 @@ class _OrderScreenState extends State<OrderScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildStandardSelector(
+                      _buildInteractiveSelector(
                         context: context,
+                        isDark: isDark,
                         label: 'COVERS',
                         value: '$_coversCount',
                         onDecrement: _coversCount > 1
@@ -1186,20 +1245,43 @@ class _OrderScreenState extends State<OrderScreen> {
                               })
                             : null,
                         onIncrement: () => setState(() => _coversCount++),
+                        onTapValue: () => _showQuickSelectGrid(
+                          context: context,
+                          label: 'Covers',
+                          current: _coversCount,
+                          min: 1,
+                          max: 20,
+                          onSelect: (v) => setState(() {
+                            _coversCount = v;
+                            if (_selectedSeat > _coversCount) {
+                              _selectedSeat = _coversCount;
+                            }
+                          }),
+                        ),
                       ),
                       Container(width: 1, height: 32, color: cs.outlineVariant),
-                      _buildStandardSelector(
+                      _buildInteractiveSelector(
                         context: context,
+                        isDark: isDark,
                         label: 'COURSE',
                         value: 'C$_selectedCourse',
                         onDecrement: _selectedCourse > 1
                             ? () => setState(() => _selectedCourse--)
                             : null,
                         onIncrement: () => setState(() => _selectedCourse++),
+                        onTapValue: () => _showQuickSelectGrid(
+                          context: context,
+                          label: 'Course',
+                          current: _selectedCourse,
+                          min: 1,
+                          max: 6,
+                          onSelect: (v) => setState(() => _selectedCourse = v),
+                        ),
                       ),
                       Container(width: 1, height: 32, color: cs.outlineVariant),
-                      _buildStandardSelector(
+                      _buildInteractiveSelector(
                         context: context,
+                        isDark: isDark,
                         label: 'SEAT',
                         value: 'S$_selectedSeat',
                         onDecrement: _selectedSeat > 1
@@ -1208,6 +1290,14 @@ class _OrderScreenState extends State<OrderScreen> {
                         onIncrement: _selectedSeat < _coversCount
                             ? () => setState(() => _selectedSeat++)
                             : null,
+                        onTapValue: () => _showQuickSelectGrid(
+                          context: context,
+                          label: 'Seat',
+                          current: _selectedSeat,
+                          min: 1,
+                          max: _coversCount,
+                          onSelect: (v) => setState(() => _selectedSeat = v),
+                        ),
                       ),
                     ],
                   ),
@@ -1222,21 +1312,79 @@ class _OrderScreenState extends State<OrderScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Search bar — glass-tinted
-                        TextField(
-                          onChanged: (value) =>
-                              setState(() => _searchQuery = value),
-                          decoration: InputDecoration(
-                            hintText: 'Search menu items...',
-                            prefixIcon: const Icon(Icons.search),
-                            fillColor: isDark
-                                ? cs.surfaceContainer
-                                : Colors.white.withOpacity(0.72),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
+                        // Search bar + list/grid toggle row — glass-tinted
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                onChanged: (value) =>
+                                    setState(() => _searchQuery = value),
+                                decoration: InputDecoration(
+                                  hintText: 'Search menu items...',
+                                  prefixIcon: Icon(
+                                    Icons.search,
+                                    color: isDark ? Colors.white : null,
+                                  ),
+                                  fillColor: isDark
+                                      ? cs.surfaceContainer
+                                      : Colors.white.withOpacity(0.72),
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  hintStyle: TextStyle(
+                                    color: isDark ? Colors.white : cs.outline,
+                                    fontWeight: isDark
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : cs.onSurface,
+                                  fontWeight: isDark
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            // Grid / List view toggle
+                            GestureDetector(
+                              onTap: () => setState(
+                                () => _listViewMode = !_listViewMode,
+                              ),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? cs.surfaceContainerHigh
+                                      : Colors.white.withOpacity(0.72),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? cs.outlineVariant
+                                        : Colors.white.withOpacity(0.60),
+                                  ),
+                                ),
+                                child: Icon(
+                                  _listViewMode
+                                      ? Icons.grid_view_rounded
+                                      : Icons.view_list_rounded,
+                                  size: 20,
+                                  color: isDark
+                                      ? cs.primary
+                                      : const Color.fromARGB(
+                                          255,
+                                          229,
+                                          222,
+                                          217,
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         // Category tabs
@@ -1262,14 +1410,234 @@ class _OrderScreenState extends State<OrderScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        // ── Menu Grid ──────────────────────────────────────────
+                        // ── Menu Grid / List ─────────────────────────────
                         Expanded(
                           child: filteredMenu.isEmpty
                               ? const Center(
                                   child: Text(
                                     'No items found matching your selection.',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 )
+                              : _listViewMode
+                              // ── LIST VIEW ────────────────────────────
+                              ? ListView.builder(
+                                  padding: const EdgeInsets.only(bottom: 120),
+                                  itemCount: filteredMenu.length,
+                                  itemBuilder: (context, index) {
+                                    final menuItem = filteredMenu[index];
+                                    final activeSeatQty = _draftTicket
+                                        .where(
+                                          (i) =>
+                                              i.name == menuItem.name &&
+                                              i.courseNumber ==
+                                                  _selectedCourse &&
+                                              i.seatNumber == _selectedSeat,
+                                        )
+                                        .fold<int>(0, (p, i) => p + i.quantity);
+                                    final isActive = activeSeatQty > 0;
+                                    final accent = isDark
+                                        ? cs.primary
+                                        : const Color(0xFFFF6D00);
+
+                                    return GestureDetector(
+                                      // Whole row is a tap target → +1
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        _updateItemQuantity(
+                                          menuItem.name,
+                                          menuItem.price,
+                                          1,
+                                        );
+                                      },
+                                      child: Container(
+                                        margin: const EdgeInsets.only(
+                                          bottom: 6,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isActive
+                                              ? accent.withOpacity(
+                                                  isDark ? 0.12 : 0.07,
+                                                )
+                                              : (isDark
+                                                    ? Colors.white.withOpacity(
+                                                        0.04,
+                                                      )
+                                                    : Colors.white.withOpacity(
+                                                        0.65,
+                                                      )),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Bold qty badge — Tappable for Grid
+                                            if (isActive)
+                                              GestureDetector(
+                                                onTap: () {
+                                                  HapticFeedback.selectionClick();
+                                                  _showQuickSelectGrid(
+                                                    context: context,
+                                                    label:
+                                                        'Quantity: ${menuItem.name}',
+                                                    current: activeSeatQty,
+                                                    min: 0,
+                                                    max: 20,
+                                                    onSelect: (v) {
+                                                      _updateItemQuantity(
+                                                        menuItem.name,
+                                                        menuItem.price,
+                                                        0,
+                                                        absoluteQuantity: v,
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                                behavior:
+                                                    HitTestBehavior.opaque,
+                                                child: Container(
+                                                  width: 36,
+                                                  height: 36,
+                                                  margin: const EdgeInsets.only(
+                                                    right: 12,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: accent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      'x$activeSeatQty',
+                                                      style: const TextStyle(
+                                                        fontFamily:
+                                                            'JetBrains Mono',
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                            else
+                                              const SizedBox(width: 48),
+                                            // Name
+                                            Expanded(
+                                              child: Text(
+                                                menuItem.name,
+                                                style: TextStyle(
+                                                  fontFamily: 'Hanken Grotesk',
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 16,
+                                                  color: cs.onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                            // Price
+                                            Text(
+                                              '\$${menuItem.price.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontFamily: 'JetBrains Mono',
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w900,
+                                                color: isActive
+                                                    ? accent
+                                                    : cs.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            // Inline − +
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    if (activeSeatQty > 0) {
+                                                      HapticFeedback.lightImpact();
+                                                      _updateItemQuantity(
+                                                        menuItem.name,
+                                                        menuItem.price,
+                                                        -1,
+                                                      );
+                                                    }
+                                                  },
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  child: Container(
+                                                    width: 28,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
+                                                      color: activeSeatQty > 0
+                                                          ? accent.withOpacity(
+                                                              0.15,
+                                                            )
+                                                          : Colors.transparent,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.remove,
+                                                      size: 14,
+                                                      color: activeSeatQty > 0
+                                                          ? accent
+                                                          : (isDark
+                                                                ? Colors.white
+                                                                : cs.outlineVariant),
+                                                    ),
+                                                  ),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    HapticFeedback.lightImpact();
+                                                    _updateItemQuantity(
+                                                      menuItem.name,
+                                                      menuItem.price,
+                                                      1,
+                                                    );
+                                                  },
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  child: Container(
+                                                    width: 28,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
+                                                      color: accent.withOpacity(
+                                                        0.15,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.add,
+                                                      size: 14,
+                                                      color: accent,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              // ── GRID VIEW ────────────────────────────
                               : GridView.builder(
                                   padding: const EdgeInsets.only(bottom: 120),
                                   gridDelegate:
@@ -1297,136 +1665,350 @@ class _OrderScreenState extends State<OrderScreen> {
                                         );
 
                                     final isActive = activeSeatQty > 0;
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        // Glass card — white 72% or active-tinted
-                                        color: isDark
-                                            ? (isActive
-                                                  ? cs.primaryContainer
-                                                        .withOpacity(0.25)
-                                                  : cs.surfaceContainerHigh)
-                                            : (isActive
-                                                  ? const Color(
-                                                      0xFFFF6F43,
-                                                    ).withOpacity(0.10)
-                                                  : Colors.white.withOpacity(
-                                                      0.72,
-                                                    )),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: isActive
-                                              ? (isDark
-                                                    ? cs.primary.withOpacity(
-                                                        0.6,
-                                                      )
-                                                    : const Color(
-                                                        0xFFFF6F43,
-                                                      ).withOpacity(0.55))
-                                              : (isDark
-                                                    ? cs.outlineVariant
-                                                    : Colors.white.withOpacity(
-                                                        0.60,
-                                                      )),
-                                          width: isActive ? 1.5 : 1.0,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: isActive
-                                                ? const Color(
-                                                    0xFFFF6F43,
-                                                  ).withOpacity(
-                                                    isDark ? 0.15 : 0.08,
-                                                  )
-                                                : Colors.black.withOpacity(
-                                                    isDark ? 0.15 : 0.05,
-                                                  ),
-                                            blurRadius: 16,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: InkWell(
-                                        onTap: () => _updateItemQuantity(
+                                    final accent = isDark
+                                        ? cs.primary
+                                        : const Color(0xFFFF6D00);
+
+                                    // Per-card qty controller (text-field alternative)
+                                    final cardQtyController =
+                                        TextEditingController(
+                                          text: activeSeatQty > 0
+                                              ? '$activeSeatQty'
+                                              : '',
+                                        );
+
+                                    return GestureDetector(
+                                      // ── Whole card = +1 tap target ──
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        _updateItemQuantity(
                                           menuItem.name,
                                           menuItem.price,
                                           1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(12),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  menuItem.name,
-                                                  style: TextStyle(
-                                                    fontFamily:
-                                                        'Hanken Grotesk',
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        13, // Refined typography size to fit
-                                                    color: cs.onSurface,
-                                                    height: 1.2,
+                                        );
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? (isActive
+                                                    ? cs.primaryContainer
+                                                          .withOpacity(0.25)
+                                                    : cs.surfaceContainerHigh)
+                                              : (isActive
+                                                    ? const Color(
+                                                        0xFFFF6F43,
+                                                      ).withOpacity(0.10)
+                                                    : Colors.white.withOpacity(
+                                                        0.72,
+                                                      )),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: isActive
+                                                ? (isDark
+                                                      ? cs.primary.withOpacity(
+                                                          0.6,
+                                                        )
+                                                      : const Color(
+                                                          0xFFFF6F43,
+                                                        ).withOpacity(0.55))
+                                                : (isDark
+                                                      ? cs.outlineVariant
+                                                      : Colors.white
+                                                            .withOpacity(0.60)),
+                                            width: isActive ? 1.5 : 1.0,
+                                          ),
+                                          boxShadow: isActive
+                                              ? [
+                                                  BoxShadow(
+                                                    color: accent.withOpacity(
+                                                      isDark ? 0.18 : 0.10,
+                                                    ),
+                                                    blurRadius: 12,
+                                                    offset: const Offset(0, 4),
                                                   ),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                ]
+                                              : [],
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            // ── Bold corner badge ────────
+                                            // Visible at arm's length: solid
+                                            // colored circle, large mono text
+                                            if (isActive)
+                                              Positioned(
+                                                top: 8,
+                                                right: 8,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: accent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: accent
+                                                            .withOpacity(0.45),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Text(
+                                                    'x$activeSeatQty',
+                                                    style: const TextStyle(
+                                                      fontFamily:
+                                                          'JetBrains Mono',
+                                                      fontSize: 15,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                              const SizedBox(height: 6),
-                                              Row(
+
+                                            // ── Card content ─────────────
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                    10,
+                                                    10,
+                                                    10,
+                                                    8,
+                                                  ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 mainAxisAlignment:
                                                     MainAxisAlignment
                                                         .spaceBetween,
                                                 children: [
+                                                  // Item name — pushed right
+                                                  // when badge is visible
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding: EdgeInsets.only(
+                                                        right: isActive
+                                                            ? 40
+                                                            : 0,
+                                                      ),
+                                                      child: Text(
+                                                        menuItem.name,
+                                                        style: TextStyle(
+                                                          fontFamily:
+                                                              'Hanken Grotesk',
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 15,
+                                                          color: cs.onSurface,
+                                                          height: 1.2,
+                                                        ),
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  // Price row
                                                   Text(
                                                     '\$${menuItem.price.toStringAsFixed(2)}',
                                                     style: TextStyle(
                                                       fontFamily:
                                                           'JetBrains Mono',
-                                                      color: cs
-                                                          .onSurface, // High contrast
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight
-                                                          .w900, // Bold price point for readability
+                                                      color: isActive
+                                                          ? accent
+                                                          : cs.onSurface,
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w900,
                                                     ),
                                                   ),
-                                                  if (activeSeatQty > 0)
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 3,
-                                                          ),
+                                                  const SizedBox(height: 8),
+                                                  // ── Single pill stepper ─
+                                                  // Absorbs pointer so taps
+                                                  // here don't double-fire
+                                                  GestureDetector(
+                                                    onTap: () {}, // absorb
+                                                    behavior:
+                                                        HitTestBehavior.opaque,
+                                                    child: Container(
+                                                      height: 32,
                                                       decoration: BoxDecoration(
-                                                        color:
-                                                            cs.primaryContainer,
+                                                        color: isDark
+                                                            ? cs.surfaceContainerHighest
+                                                            : cs.surfaceContainerHighest
+                                                                  .withOpacity(
+                                                                    0.55,
+                                                                  ),
                                                         borderRadius:
                                                             BorderRadius.circular(
-                                                              8,
+                                                              999,
                                                             ),
                                                       ),
-                                                      child: Text(
-                                                        'x$activeSeatQty',
-                                                        style: TextStyle(
-                                                          fontFamily:
-                                                              'JetBrains Mono',
-                                                          color: cs
-                                                              .onPrimaryContainer,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: 12,
-                                                        ),
+                                                      child: Row(
+                                                        children: [
+                                                          // − button
+                                                          InkWell(
+                                                            onTap:
+                                                                activeSeatQty >
+                                                                    0
+                                                                ? () {
+                                                                    HapticFeedback.lightImpact();
+                                                                    _updateItemQuantity(
+                                                                      menuItem
+                                                                          .name,
+                                                                      menuItem
+                                                                          .price,
+                                                                      -1,
+                                                                    );
+                                                                  }
+                                                                : null,
+                                                            borderRadius:
+                                                                const BorderRadius.only(
+                                                                  topLeft:
+                                                                      Radius.circular(
+                                                                        999,
+                                                                      ),
+                                                                  bottomLeft:
+                                                                      Radius.circular(
+                                                                        999,
+                                                                      ),
+                                                                ),
+                                                            child: SizedBox(
+                                                              width: 32,
+                                                              height: 32,
+                                                              child: Icon(
+                                                                Icons.remove,
+                                                                size: 15,
+                                                                color:
+                                                                    activeSeatQty >
+                                                                        0
+                                                                    ? (isDark
+                                                                          ? Colors.white
+                                                                          : cs.onSurface)
+                                                                    : (isDark
+                                                                          ? Colors.white60
+                                                                          : cs.outlineVariant),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          // Inline qty text field
+                                                          Expanded(
+                                                            child: TextFormField(
+                                                              controller:
+                                                                  cardQtyController,
+                                                              keyboardType:
+                                                                  TextInputType
+                                                                      .number,
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style: TextStyle(
+                                                                fontFamily:
+                                                                    'JetBrains Mono',
+                                                                fontSize: 13,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: isActive
+                                                                    ? cs.onSurface
+                                                                    : (isDark
+                                                                          ? Colors.white
+                                                                          : cs.onSurfaceVariant),
+                                                              ),
+                                                              decoration: const InputDecoration(
+                                                                isDense: true,
+                                                                contentPadding:
+                                                                    EdgeInsets
+                                                                        .zero,
+                                                                border:
+                                                                    InputBorder
+                                                                        .none,
+                                                                hintText: '0',
+                                                              ),
+                                                              onTap: () {
+                                                                cardQtyController
+                                                                    .selection = TextSelection(
+                                                                  baseOffset: 0,
+                                                                  extentOffset:
+                                                                      cardQtyController
+                                                                          .text
+                                                                          .length,
+                                                                );
+                                                              },
+                                                              onChanged: (val) {
+                                                                final parsed =
+                                                                    int.tryParse(
+                                                                      val.trim(),
+                                                                    );
+                                                                if (parsed !=
+                                                                        null &&
+                                                                    parsed >=
+                                                                        0) {
+                                                                  _updateItemQuantity(
+                                                                    menuItem
+                                                                        .name,
+                                                                    menuItem
+                                                                        .price,
+                                                                    0,
+                                                                    absoluteQuantity:
+                                                                        parsed,
+                                                                  );
+                                                                }
+                                                              },
+                                                            ),
+                                                          ),
+                                                          // + button
+                                                          InkWell(
+                                                            onTap: () {
+                                                              HapticFeedback.lightImpact();
+                                                              _updateItemQuantity(
+                                                                menuItem.name,
+                                                                menuItem.price,
+                                                                1,
+                                                              );
+                                                            },
+                                                            borderRadius:
+                                                                const BorderRadius.only(
+                                                                  topRight:
+                                                                      Radius.circular(
+                                                                        999,
+                                                                      ),
+                                                                  bottomRight:
+                                                                      Radius.circular(
+                                                                        999,
+                                                                      ),
+                                                                ),
+                                                            child: SizedBox(
+                                                              width: 32,
+                                                              height: 32,
+                                                              child: Icon(
+                                                                Icons.add,
+                                                                size: 15,
+                                                                color: accent,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
+                                                  ),
                                                 ],
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     );
@@ -1507,13 +2089,16 @@ class _OrderScreenState extends State<OrderScreen> {
     required IconData icon,
     required VoidCallback? onPressed,
     required ColorScheme cs,
+    required bool isDark,
   }) {
     return SizedBox(
       width: 26,
       height: 26,
       child: Material(
         color: onPressed == null
-            ? cs.surfaceContainerHighest.withOpacity(0.4)
+            ? (isDark
+                  ? cs.surfaceContainerHighest.withOpacity(0.2)
+                  : cs.surfaceContainerHighest.withOpacity(0.4))
             : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
         child: InkWell(
@@ -1522,20 +2107,151 @@ class _OrderScreenState extends State<OrderScreen> {
           child: Icon(
             icon,
             size: 16,
-            color: onPressed == null ? cs.outlineVariant : cs.onSurface,
+            color: onPressed == null
+                ? (isDark ? Colors.white54 : cs.outlineVariant)
+                : (isDark ? Colors.white : cs.onSurface),
           ),
         ),
       ),
     );
   }
 
-  /// Standardized consistent control layout for parameter settings
-  Widget _buildStandardSelector({
+  /// ── Quick-select grid popup (for Seat, Course & Covers) ────────────────────
+  /// Opens a centred Dialog so servers can jump directly to any value without
+  /// tapping +/− multiple times. Appears in the middle of the screen.
+  void _showQuickSelectGrid({
     required BuildContext context,
+    required String label,
+    required int current,
+    required int min,
+    required int max,
+    required ValueChanged<int> onSelect,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: cs.surfaceContainerHigh,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 32,
+            vertical: 48,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header row with close button
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Select $label',
+                        style: TextStyle(
+                          fontFamily: 'Hanken Grotesk',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, size: 18, color: cs.outline),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Currently: $label $current',
+                  style: TextStyle(
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 12,
+                    color: isDark ? Colors.white : cs.onSurfaceVariant,
+                    fontWeight: isDark ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Number grid — 4 columns of large tap targets
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.3,
+                  ),
+                  itemCount: max - min + 1,
+                  itemBuilder: (_, i) {
+                    final value = min + i;
+                    final isSelected = value == current;
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        onSelect(value);
+                        Navigator.of(ctx).pop();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        decoration: BoxDecoration(
+                          // Use theme primary for selected — matches original
+                          // surfaceContainerHighest for unselected
+                          color: isSelected
+                              ? cs.primary
+                              : cs.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: cs.primary.withOpacity(0.30),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: Center(
+                          child: Text(
+                            '$value',
+                            style: TextStyle(
+                              fontFamily: 'JetBrains Mono',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: isSelected ? cs.onPrimary : cs.onSurface,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Standardized consistent control layout — tappable value opens centre dialog
+  Widget _buildInteractiveSelector({
+    required BuildContext context,
+    required bool isDark,
     required String label,
     required String value,
     required VoidCallback? onDecrement,
     required VoidCallback? onIncrement,
+    VoidCallback? onTapValue,
   }) {
     final cs = Theme.of(context).colorScheme;
     return Column(
@@ -1545,8 +2261,9 @@ class _OrderScreenState extends State<OrderScreen> {
           label,
           style: TextStyle(
             fontFamily: 'JetBrains Mono',
-            fontSize: 10,
-            color: cs.outline,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : cs.onSurface,
             letterSpacing: 0.6,
           ),
         ),
@@ -1558,16 +2275,22 @@ class _OrderScreenState extends State<OrderScreen> {
               icon: Icons.remove,
               onPressed: onDecrement,
               cs: cs,
+              isDark: isDark,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontFamily: 'JetBrains Mono',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: cs.onSurface,
+            // Tapping the value opens the quick-select dialog
+            GestureDetector(
+              onTap: onTapValue,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    // Original color — no orange override
+                    color: isDark ? Colors.white : cs.onSurface,
+                  ),
                 ),
               ),
             ),
@@ -1575,6 +2298,7 @@ class _OrderScreenState extends State<OrderScreen> {
               icon: Icons.add,
               onPressed: onIncrement,
               cs: cs,
+              isDark: isDark,
             ),
           ],
         ),
@@ -1628,10 +2352,14 @@ class _OrderScreenState extends State<OrderScreen> {
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : cs.onSurfaceVariant,
+                color: isSelected
+                    ? Colors.white
+                    : (isDarkBtn ? Colors.white : cs.onSurfaceVariant),
                 fontFamily: 'JetBrains Mono',
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isDarkBtn
+                    ? FontWeight.bold
+                    : (isSelected ? FontWeight.bold : FontWeight.normal),
               ),
             ),
           ),

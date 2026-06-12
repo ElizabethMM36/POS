@@ -704,7 +704,6 @@ class _CheckManagementScreenState extends State<CheckManagementScreen>
             ),
 
             // ── Order pipeline ────────────────────────────────────────────
-            _OrderPipeline(stats: stats),
 
             // ── Ticket grid ───────────────────────────────────────────────
             Expanded(
@@ -950,36 +949,6 @@ class _AnalyticsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'SHIFT ANALYTICS',
-                    style: TextStyle(
-                      fontFamily: 'JetBrains Mono',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.onSurfaceVariant,
-                      letterSpacing: 1.4,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    expanded
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                    size: 16,
-                    color: theme.colorScheme.outline,
-                  ),
-                ],
-              ),
-            ),
-          ),
           AnimatedCrossFade(
             crossFadeState: expanded
                 ? CrossFadeState.showSecond
@@ -1284,113 +1253,6 @@ class _TableOccupancyTile extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-class _OrderPipeline extends StatelessWidget {
-  final _ShiftStats stats;
-  const _OrderPipeline({required this.stats});
-
-  static const _icons = {
-    OrderItemStatus.pending: Icons.hourglass_empty_rounded,
-    OrderItemStatus.fired: Icons.local_fire_department_rounded,
-    OrderItemStatus.preparing: Icons.soup_kitchen_rounded,
-    OrderItemStatus.ready: Icons.done_all_rounded,
-    OrderItemStatus.served: Icons.restaurant_rounded,
-  };
-
-  static const _labels = {
-    OrderItemStatus.pending: 'Pending',
-    OrderItemStatus.fired: 'Fired',
-    OrderItemStatus.preparing: 'Prep',
-    OrderItemStatus.ready: 'Ready',
-    OrderItemStatus.served: 'Served',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final total = stats.totalItems;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      color: Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'PIPELINE WORKFLOW',
-            style: TextStyle(
-              fontFamily: 'JetBrains Mono',
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: theme.colorScheme.onSurfaceVariant,
-              letterSpacing: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: OrderItemStatus.values.map((status) {
-              final count = stats.statusCounts[status] ?? 0;
-              final pct = total > 0 ? (count / total * 100).round() : 0;
-              final color = _itemStatusColor(context, status);
-              final active = count > 0;
-
-              return Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: active
-                          ? color.withOpacity(isDark ? 0.2 : 0.15)
-                          : (isDark
-                                ? Colors.white.withOpacity(0.03)
-                                : Colors.white.withOpacity(0.4)),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Icon(
-                        _icons[status],
-                        size: 18,
-                        color: active
-                            ? color
-                            : theme.colorScheme.outline.withOpacity(0.6),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _labels[status]!,
-                    style: TextStyle(
-                      fontFamily: 'Hanken Grotesk',
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: active
-                          ? theme.colorScheme.onSurface
-                          : theme.colorScheme.outline,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$count ($pct%)',
-                    style: TextStyle(
-                      fontFamily: 'JetBrains Mono',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: active
-                          ? color
-                          : theme.colorScheme.outline.withOpacity(0.5),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 class _TicketCard extends StatelessWidget {

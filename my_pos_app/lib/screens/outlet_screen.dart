@@ -37,7 +37,7 @@ class OutletScreen extends StatelessWidget {
           },
         ),
         title: Text(
-          'Table Overview',
+          'Select Outlet',
           style: TextStyle(
             fontFamily: 'Hanken Grotesk',
             fontWeight: FontWeight.w600,

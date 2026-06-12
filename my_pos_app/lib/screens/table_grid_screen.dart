@@ -48,16 +48,9 @@ class TableGridScreen extends StatefulWidget {
 
 class _TableGridScreenState extends State<TableGridScreen>
     with SingleTickerProviderStateMixin {
-  String _selectedSection = 'All Sections';
+  TableStatus? _selectedStatus; // null = show all statuses
   late AnimationController _blinkController;
   late Animation<double> _blinkAnimation;
-
-  final List<String> _sections = [
-    'All Sections',
-    'Main Dining Floor',
-    'Terrace & Rooftop Bar',
-    'Private Dining Room',
-  ];
 
   @override
   void initState() {
@@ -304,7 +297,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                   label: Text(
                     table.status == TableStatus.occupied
                         ? 'Add Items to Order'
-                        : 'Open Kitchen Order Sheet',
+                        : 'Place the Order',
                     style: const TextStyle(
                       fontFamily: 'Hanken Grotesk',
                       fontWeight: FontWeight.bold,
@@ -502,42 +495,19 @@ class _TableGridScreenState extends State<TableGridScreen>
 
     // 1. Filtered Tables Logic
     final filteredTables = provider.tables.where((table) {
-      if (_selectedSection == 'All Sections') return true;
-      if (_selectedSection == 'Main Dining Floor') return table.number <= 8;
-      if (_selectedSection == 'Terrace & Rooftop Bar') {
-        return (table.number >= 9 && table.number <= 11) || table.number == 13;
-      }
-      if (_selectedSection == 'Private Dining Room') {
-        return table.number == 12 || table.number >= 14;
-      }
-      return true;
+      return _selectedStatus == null || table.status == _selectedStatus;
     }).toList();
 
-    // 2. Count Available
+    // 2. Count by status
     final int availCount = provider.tables
         .where((t) => t.status == TableStatus.available)
         .length;
-
-    // 3. RECTIFIED: Active Alert Logic
-    // We use firstWhereOrNull (from collection package) or a standard try/catch logic.
-    // Here is the cleanest way without extra packages:
-    RestaurantTable? getActiveTable() {
-      try {
-        return provider.tables.firstWhere(
-          (t) => t.status == TableStatus.readyForBill,
-        );
-      } catch (_) {
-        try {
-          return provider.tables.firstWhere(
-            (t) => t.status == TableStatus.occupied,
-          );
-        } catch (_) {
-          return null;
-        }
-      }
-    }
-
-    final RestaurantTable? activeAlertTable = getActiveTable();
+    final int occupiedCount = provider.tables
+        .where((t) => t.status == TableStatus.occupied)
+        .length;
+    final int billCount = provider.tables
+        .where((t) => t.status == TableStatus.readyForBill)
+        .length;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -545,9 +515,9 @@ class _TableGridScreenState extends State<TableGridScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Section filter bar
+            // ── Page header ──────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
               decoration: BoxDecoration(
                 color: isDark
                     ? Colors.black.withOpacity(0.25)
@@ -560,60 +530,63 @@ class _TableGridScreenState extends State<TableGridScreen>
                   ),
                 ),
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _sections.map((section) {
-                    final isSelected = _selectedSection == section;
-                    String displayName = section;
-                    if (section == 'Main Dining Floor')
-                      displayName = 'Main Dining';
-                    if (section == 'Terrace & Rooftop Bar')
-                      displayName = 'Bar Area';
-                    if (section == 'Private Dining Room')
-                      displayName = 'Private Room';
-
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedSection = section),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? colors.primary
-                              : (isDark
-                                    ? Colors.white.withOpacity(0.07)
-                                    : Colors.white.withOpacity(0.65)),
-                          borderRadius: BorderRadius.circular(9999),
-                          border: isSelected
-                              ? null
-                              : Border.all(
-                                  color: isDark
-                                      ? Colors.white.withOpacity(0.12)
-                                      : Colors.white.withOpacity(0.55),
-                                ),
-                        ),
-                        child: Text(
-                          displayName,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Table Overview',
                           style: TextStyle(
                             fontFamily: 'Hanken Grotesk',
-                            fontSize: 14,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w500,
-                            color: isSelected
-                                ? colors.onPrimary
-                                : colors.onSurfaceVariant,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: colors.onSurface,
                           ),
                         ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Tap a table to manage its order',
+                          style: TextStyle(
+                            fontFamily: 'Hanken Grotesk',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w400,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Live total badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.07)
+                          : Colors.white.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(9999),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.12)
+                            : Colors.white.withOpacity(0.55),
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                    child: Text(
+                      '${provider.tables.length} Tables',
+                      style: TextStyle(
+                        fontFamily: 'JetBrains Mono',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -625,100 +598,212 @@ class _TableGridScreenState extends State<TableGridScreen>
                 ),
                 child: Column(
                   children: [
+                    // ── Status filter boxes ──────────────────────────────
                     Row(
                       children: [
-                        // Avail Box
+                        // AVAIL box
                         Expanded(
-                          child: Container(
-                            height: 100,
-                            decoration: _glassDecoration(isDark: isDark),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'AVAIL',
-                                  style: TextStyle(
-                                    fontFamily: 'JetBrains Mono',
-                                    fontSize: 12,
-                                    color: StatusColors.available,
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _selectedStatus =
+                                  _selectedStatus == TableStatus.available
+                                  ? null
+                                  : TableStatus.available;
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              height: 100,
+                              decoration: _glassDecoration(isDark: isDark)
+                                  .copyWith(
+                                    color:
+                                        _selectedStatus == TableStatus.available
+                                        ? StatusColors.available.withOpacity(
+                                            isDark ? 0.22 : 0.15,
+                                          )
+                                        : (isDark
+                                              ? Colors.white.withOpacity(0.05)
+                                              : Colors.white.withOpacity(0.72)),
+                                    border: Border.all(
+                                      color:
+                                          _selectedStatus ==
+                                              TableStatus.available
+                                          ? StatusColors.available.withOpacity(
+                                              0.7,
+                                            )
+                                          : (isDark
+                                                ? Colors.white.withOpacity(0.10)
+                                                : Colors.white.withOpacity(
+                                                    0.60,
+                                                  )),
+                                      width:
+                                          _selectedStatus ==
+                                              TableStatus.available
+                                          ? 1.5
+                                          : 1.0,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  availCount.toString().padLeft(2, '0'),
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w800,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'AVAIL',
+                                    style: TextStyle(
+                                      fontFamily: 'JetBrains Mono',
+                                      fontSize: 12,
+                                      color: StatusColors.available,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  Text(
+                                    availCount.toString().padLeft(2, '0'),
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                      color:
+                                          _selectedStatus ==
+                                              TableStatus.available
+                                          ? StatusColors.available
+                                          : colors.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // Alert Box
+                        // OCCUP box
                         Expanded(
                           child: GestureDetector(
-                            onTap: () {
-                              if (activeAlertTable != null)
-                                _showTableSheet(context, activeAlertTable);
-                            },
-                            child: Container(
+                            onTap: () => setState(() {
+                              _selectedStatus =
+                                  _selectedStatus == TableStatus.occupied
+                                  ? null
+                                  : TableStatus.occupied;
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
                               height: 100,
-                              decoration: _glassDecoration(isDark: isDark),
-                              child: Stack(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      activeAlertTable?.number
-                                              .toString()
-                                              .padLeft(2, '0') ??
-                                          '--',
-                                      style: TextStyle(
-                                        fontSize: 64,
-                                        fontWeight: FontWeight.w800,
-                                        // Fixed withOpacity for newer Flutter
-                                        color: colors.onSurface.withOpacity(
-                                          0.05,
-                                        ),
-                                      ),
+                              decoration: _glassDecoration(isDark: isDark)
+                                  .copyWith(
+                                    color:
+                                        _selectedStatus == TableStatus.occupied
+                                        ? StatusColors.occupied.withOpacity(
+                                            isDark ? 0.22 : 0.15,
+                                          )
+                                        : (isDark
+                                              ? Colors.white.withOpacity(0.05)
+                                              : Colors.white.withOpacity(0.72)),
+                                    border: Border.all(
+                                      color:
+                                          _selectedStatus ==
+                                              TableStatus.occupied
+                                          ? StatusColors.occupied.withOpacity(
+                                              0.7,
+                                            )
+                                          : (isDark
+                                                ? Colors.white.withOpacity(0.10)
+                                                : Colors.white.withOpacity(
+                                                    0.60,
+                                                  )),
+                                      width:
+                                          _selectedStatus ==
+                                              TableStatus.occupied
+                                          ? 1.5
+                                          : 1.0,
                                     ),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(10),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              activeAlertTable != null
-                                                  ? 'T-${activeAlertTable.number}'
-                                                  : 'T--',
-                                              style: TextStyle(
-                                                color:
-                                                    activeAlertTable?.status ==
-                                                        TableStatus.readyForBill
-                                                    ? Colors.deepPurple
-                                                    : StatusColors.occupied,
-                                              ),
-                                            ),
-                                            if (activeAlertTable?.status ==
-                                                TableStatus.readyForBill)
-                                              const Icon(
-                                                Icons.receipt_rounded,
-                                                size: 16,
-                                                color: Colors.orange,
-                                              ),
-                                          ],
-                                        ),
-                                        Text(
-                                          '\$${(activeAlertTable?.billAmount ?? 0.0).toStringAsFixed(2)}',
-                                        ),
-                                      ],
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'OCCUP',
+                                    style: TextStyle(
+                                      fontFamily: 'JetBrains Mono',
+                                      fontSize: 12,
+                                      color: StatusColors.occupied,
+                                    ),
+                                  ),
+                                  Text(
+                                    occupiedCount.toString().padLeft(2, '0'),
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                      color:
+                                          _selectedStatus ==
+                                              TableStatus.occupied
+                                          ? StatusColors.occupied
+                                          : colors.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // BILL box
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _selectedStatus =
+                                  _selectedStatus == TableStatus.readyForBill
+                                  ? null
+                                  : TableStatus.readyForBill;
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              height: 100,
+                              decoration: _glassDecoration(isDark: isDark)
+                                  .copyWith(
+                                    color:
+                                        _selectedStatus ==
+                                            TableStatus.readyForBill
+                                        ? const Color(
+                                            0xFF8B5CF6,
+                                          ).withOpacity(isDark ? 0.22 : 0.15)
+                                        : (isDark
+                                              ? Colors.white.withOpacity(0.05)
+                                              : Colors.white.withOpacity(0.72)),
+                                    border: Border.all(
+                                      color:
+                                          _selectedStatus ==
+                                              TableStatus.readyForBill
+                                          ? const Color(
+                                              0xFF8B5CF6,
+                                            ).withOpacity(0.7)
+                                          : (isDark
+                                                ? Colors.white.withOpacity(0.10)
+                                                : Colors.white.withOpacity(
+                                                    0.60,
+                                                  )),
+                                      width:
+                                          _selectedStatus ==
+                                              TableStatus.readyForBill
+                                          ? 1.5
+                                          : 1.0,
+                                    ),
+                                  ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'BILL',
+                                    style: TextStyle(
+                                      fontFamily: 'JetBrains Mono',
+                                      fontSize: 12,
+                                      color: Color(0xFF8B5CF6),
+                                    ),
+                                  ),
+                                  Text(
+                                    billCount.toString().padLeft(2, '0'),
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                      color:
+                                          _selectedStatus ==
+                                              TableStatus.readyForBill
+                                          ? const Color(0xFF8B5CF6)
+                                          : colors.onSurface,
                                     ),
                                   ),
                                 ],
@@ -835,7 +920,7 @@ class _TableGridScreenState extends State<TableGridScreen>
               table.covers > 0 ? '${table.covers} Pax' : 'Vacant',
               style: TextStyle(
                 fontFamily: 'JetBrains Mono',
-                fontSize: 11,
+                fontSize: 14,
                 color: colors.onSurfaceVariant,
               ),
             ),
@@ -846,7 +931,7 @@ class _TableGridScreenState extends State<TableGridScreen>
                 table.duration,
                 style: TextStyle(
                   fontFamily: 'JetBrains Mono',
-                  fontSize: 11,
+                  fontSize: 14,
                   color: colors.onSurfaceVariant,
                 ),
               ),
